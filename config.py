@@ -12,6 +12,7 @@ class Config:
     USERS_JSON = os.path.join(DATA_DIR, 'users.json')
     CATEGORIES_JSON = os.path.join(DATA_DIR, 'categories.json')
     REPORTS_JSON = os.path.join(DATA_DIR, 'reports.json')
+    ICONS_DIR = os.path.join(DATA_DIR, 'icons')
 
     # hCaptcha configuration
     # Get your keys from https://www.hcaptcha.com/

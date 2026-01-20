@@ -5,9 +5,10 @@ import re
 import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from config import Config
 
 # Directory to store downloaded icons
-ICONS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'icons')
+ICONS_DIR = Config.ICONS_DIR
 
 
 def ensure_icons_dir():
@@ -116,7 +117,7 @@ def download_icon(icon_url, package_name):
             f.write(response.content)
 
         # Return the URL path for use in templates
-        return f"/static/icons/{filename}"
+        return f"/icons/{filename}"
 
     except Exception as e:
         print(f"Error downloading icon for {package_name}: {e}")

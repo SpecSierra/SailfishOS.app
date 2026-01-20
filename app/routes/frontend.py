@@ -1,11 +1,18 @@
 import requests
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, send_from_directory
 from flask_login import current_user
 from app.models import DataManager
 from app.forms import SearchForm, ReportForm, AppSubmitForm
 from app.utils import fetch_and_update_app_info
+from config import Config
 
 frontend_bp = Blueprint('frontend', __name__)
+
+
+@frontend_bp.route('/icons/<path:filename>')
+def serve_icon(filename):
+    """Serve icons from the data/icons directory."""
+    return send_from_directory(Config.ICONS_DIR, filename)
 
 
 def verify_hcaptcha(response_token):
