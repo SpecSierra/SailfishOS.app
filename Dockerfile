@@ -1,17 +1,22 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1
+FROM python:3.12-alpine
+WORKDIR /code
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# Install necessary build tools and dependencies
+RUN apk add --no-cache gcc musl-dev linux-headers
 
-WORKDIR /app
+# Copy and install Python dependencies
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy application code and other files
+COPY . .
+COPY app /code
 
-COPY . /app
+# Create necessary directories
+RUN mkdir -p /code/data
 
-EXPOSE 5000
-
-VOLUME ["/app/data"]
-
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "wsgi:app"]
+# Command to run the application
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:create_app()"]

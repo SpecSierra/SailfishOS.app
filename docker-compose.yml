@@ -1,17 +1,12 @@
-version: "3.9"
-
 services:
-  app:
+  web:
     build: .
     ports:
       - "127.0.0.1:5000:5000"
     volumes:
-      - sailfishos-data:/app/data
+      - ./data:/code/data
     environment:
       - SECRET_KEY=change-me
       - APP_VERSION=0.0.1
       - HCAPTCHA_SITE_KEY=10000000-ffff-ffff-ffff-000000000001
-      - HCAPTCHA_SECRET_KEY=0x0000000000000000000000000000000000000000
-
-volumes:
-  sailfishos-data:
+      - HCAPTCHA_SECRET_KEY=0x000000000000000000000000000000000000000
