@@ -13,10 +13,9 @@ RUN pip install -r requirements.txt
 
 # Copy application code and other files
 COPY . .
-COPY app /code
 
 # Create necessary directories
-RUN mkdir -p /code/data
+RUN mkdir -p /code/data/icons
 
 # Command to run the application
 CMD ["gunicorn", "-b", "0.0.0.0:4000", "app:create_app()"]

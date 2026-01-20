@@ -1,7 +1,12 @@
+import logging
 from flask import Flask
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 login_manager = LoginManager()
 login_manager.login_view = 'dashboard.login'

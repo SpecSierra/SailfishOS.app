@@ -3,9 +3,12 @@
 import requests
 import re
 import os
+import logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 # Directory to store downloaded icons
 ICONS_DIR = Config.ICONS_DIR
@@ -14,7 +17,11 @@ ICONS_DIR = Config.ICONS_DIR
 def ensure_icons_dir():
     """Ensure the icons directory exists."""
     if not os.path.exists(ICONS_DIR):
-        os.makedirs(ICONS_DIR)
+        try:
+            os.makedirs(ICONS_DIR)
+            logger.info(f"Created icons directory: {ICONS_DIR}")
+        except Exception as e:
+            logger.error(f"Failed to create icons directory {ICONS_DIR}: {e}")
 
 
 def fetch_play_store_icon(package_name):
@@ -110,17 +117,19 @@ def download_icon(icon_url, package_name):
     }
 
     try:
+        logger.info(f"Downloading icon for {package_name} to {filepath}")
         response = requests.get(icon_url, headers=headers, timeout=10)
         response.raise_for_status()
 
         with open(filepath, 'wb') as f:
             f.write(response.content)
 
+        logger.info(f"Successfully saved icon to {filepath}")
         # Return the URL path for use in templates
         return f"/icons/{filename}"
 
     except Exception as e:
-        print(f"Error downloading icon for {package_name}: {e}")
+        logger.error(f"Error downloading icon for {package_name}: {e}")
         return None
 
 
