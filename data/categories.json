@@ -1,0 +1,19 @@
+{
+  "categories": [
+    {"name": "Social Media", "slug": "social_media", "icon": "fa-share-alt"},
+    {"name": "Messaging", "slug": "messaging", "icon": "fa-comments"},
+    {"name": "Banking & Finance", "slug": "banking", "icon": "fa-university"},
+    {"name": "Productivity", "slug": "productivity", "icon": "fa-tasks"},
+    {"name": "Entertainment", "slug": "entertainment", "icon": "fa-film"},
+    {"name": "Music & Audio", "slug": "music", "icon": "fa-music"},
+    {"name": "Photography", "slug": "photography", "icon": "fa-camera"},
+    {"name": "Shopping", "slug": "shopping", "icon": "fa-shopping-cart"},
+    {"name": "Travel & Navigation", "slug": "travel", "icon": "fa-map-marker-alt"},
+    {"name": "News & Reading", "slug": "news", "icon": "fa-newspaper"},
+    {"name": "Health & Fitness", "slug": "health", "icon": "fa-heartbeat"},
+    {"name": "Games", "slug": "games", "icon": "fa-gamepad"},
+    {"name": "Utilities", "slug": "utilities", "icon": "fa-wrench"},
+    {"name": "Education", "slug": "education", "icon": "fa-graduation-cap"},
+    {"name": "Business", "slug": "business", "icon": "fa-briefcase"}
+  ]
+}

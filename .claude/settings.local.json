@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python3:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python init_admin.py:*)",
+      "Bash(python -c:*)",
+      "Bash(timeout 5 python:*)",
+      "Bash(python -m flask:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python run.py:*)",
+      "Bash(curl:*)",
+      "Bash(source:*)",
+      "Bash(chmod:*)"
+    ]
+  }
+}

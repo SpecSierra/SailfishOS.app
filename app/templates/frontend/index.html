@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}SailfishOS App Compatibility Database{% endblock %}
+
+{% block main_class %}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="page-header" id="heroHeader">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="fas fa-ship"></i> SailfishOS App Compatibility</h1>
+                <p>Find out which Android apps work on SailfishOS and discover native alternatives</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-light" id="heroToggle" aria-label="Hide header">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <form method="get" action="{{ url_for('frontend.index') }}">
+            <div class="row">
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
+                        </div>
+                        <input type="text" name="q" class="form-control" placeholder="Search apps..." value="{{ request.args.get('q', '') }}" aria-label="Search apps">
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <select name="category" class="form-control" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.slug }}" {% if request.args.get('category') == cat.slug %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <select name="status" class="form-control" aria-label="Filter by status">
+                        <option value="">All Status</option>
+                        <option value="native" {% if request.args.get('status') == 'native' %}selected{% endif %}>Has Native App</option>
+                        <option value="works" {% if request.args.get('status') == 'works' %}selected{% endif %}>Android Support Works</option>
+                        <option value="partial" {% if request.args.get('status') == 'partial' %}selected{% endif %}>Partial Support</option>
+                        <option value="no" {% if request.args.get('status') == 'no' %}selected{% endif %}>Does Not Work</option>
+                        <option value="unknown" {% if request.args.get('status') == 'unknown' %}selected{% endif %}>Unknown</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-search" aria-hidden="true"></i> Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results count -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-muted mb-0">
+            Showing {{ apps|length }} of {{ total }} apps
+        </p>
+        <div>
+            {% if request.args.get('q') or request.args.get('category') or request.args.get('status') %}
+            <a href="{{ url_for('frontend.index') }}" class="btn btn-sm btn-outline-secondary mr-2">
+                <i class="fas fa-times" aria-hidden="true"></i> Clear filters
+            </a>
+            {% endif %}
+            <a href="{{ url_for('frontend.submit_app') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus" aria-hidden="true"></i> Submit New App
+            </a>
+        </div>
+    </div>
+
+    <!-- Apps List -->
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-6"><strong><i class="fab fa-android" aria-hidden="true"></i> Android App</strong></div>
+                <div class="col-6"><strong><i class="fas fa-ship" aria-hidden="true"></i> SailfishOS Status</strong></div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if apps %}
+                {% for app in apps %}
+                <div class="app-row px-3 {% if app.native_exists %}has-native{% endif %}">
+                    <!-- Android Side -->
+                    <div class="app-android">
+                        <div class="d-flex align-items-start">
+                            <div class="app-icon mr-3">
+                                {% if app.android_icon_url %}
+                                <img src="{{ app.android_icon_url }}" alt="{{ app.android_name }}">
+                                {% else %}
+                                <i class="fab fa-android" aria-hidden="true"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h5 class="mb-1">
+                                    <a href="{{ url_for('frontend.app_detail', app_id=app.id) }}" class="text-dark">
+                                        {{ app.android_name }}
+                                    </a>
+                                </h5>
+                                {% if app.category and category_map.get(app.category) %}
+                                <span class="category-badge">
+                                    <i class="fas {{ category_map[app.category].icon }}" aria-hidden="true"></i>
+                                    {{ category_map[app.category].name }}
+                                </span>
+                                {% endif %}
+                                {% if app.android_description %}
+                                <p class="text-muted small mt-1 mb-0">{{ app.android_description|truncate(100, True, '...') }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SailfishOS Side -->
+                    <div class="app-sailfish">
+                        <!-- Native App -->
+                        {% if app.native_exists %}
+                        <div class="mb-2">
+                            <span class="badge badge-native"><i class="fas fa-check" aria-hidden="true"></i> Native App</span>
+                            {% if app.native_store_url %}
+                            <a href="{{ app.native_store_url }}" target="_blank" rel="noopener" class="native-app-link"><strong>{{ app.native_name }}</strong> <i class="fas fa-external-link-alt fa-sm"></i></a>
+                            {% else %}
+                            <strong>{{ app.native_name }}</strong>
+                            {% endif %}
+                            {% if app.native_rating > 0 %}
+                            <span class="rating ml-2" role="img" aria-label="Rating: {{ app.native_rating }} out of 5 stars">
+                                {% for i in range(5) %}
+                                    {% if i < app.native_rating %}
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    {% else %}
+                                    <i class="fas fa-star empty" aria-hidden="true"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Android Support Status -->
+                        <div>
+                            {% set rating_data = app_ratings.get(app.id, {}) %}
+                            {% set community_status = rating_data.get('status') %}
+                            {% set community_rating = rating_data.get('rating', 0) %}
+                            {% set report_count = rating_data.get('count', 0) %}
+
+                            <span class="mr-2">Android Support:</span>
+                            {% set display_status = community_status if community_status else app.android_support_works %}
+                            {% if display_status == 'yes' %}
+                            <span class="badge badge-works"><i class="fas fa-check" aria-hidden="true"></i> Works</span>
+                            {% elif display_status == 'partial' %}
+                            <span class="badge badge-partial"><i class="fas fa-exclamation" aria-hidden="true"></i> Partial</span>
+                            {% elif display_status == 'no' %}
+                            <span class="badge badge-no"><i class="fas fa-times" aria-hidden="true"></i> Does Not Work</span>
+                            {% else %}
+                            <span class="badge badge-unknown"><i class="fas fa-question" aria-hidden="true"></i> Unknown</span>
+                            {% endif %}
+
+                            {% if community_rating > 0 %}
+                            <span class="rating ml-2" role="img" aria-label="Rating: {{ community_rating }} out of 5 stars">
+                                {% for i in range(5) %}
+                                    {% if i < community_rating|round %}
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    {% else %}
+                                    <i class="fas fa-star empty" aria-hidden="true"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <small class="text-muted">({{ community_rating }})</small>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if report_count > 0 %}
+                        <small class="text-muted mt-1 d-block">
+                            <i class="fas fa-users" aria-hidden="true"></i> {{ report_count }} report{% if report_count != 1 %}s{% endif %}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <h4>No apps found</h4>
+                <p>Try adjusting your search or filter criteria</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav aria-label="Apps pagination" class="mt-4">
+        <div class="d-flex justify-content-center align-items-center flex-wrap">
+            <!-- Previous button -->
+            <a class="btn btn-outline-primary mr-2 {% if page <= 1 %}disabled{% endif %}"
+               href="{{ url_for('frontend.index', page=page-1, q=request.args.get('q', ''), category=request.args.get('category', ''), status=request.args.get('status', '')) }}"
+               {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}
+               aria-label="Previous page">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i> Previous
+            </a>
+
+            <!-- Page dropdown -->
+            <div class="dropdown mx-2">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="pageDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Page {{ page }} of {{ total_pages }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-scrollable" aria-labelledby="pageDropdown" style="max-height: 300px; overflow-y: auto;">
+                    {% for p in range(1, total_pages + 1) %}
+                    <a class="dropdown-item {% if p == page %}active{% endif %}"
+                       href="{{ url_for('frontend.index', page=p, q=request.args.get('q', ''), category=request.args.get('category', ''), status=request.args.get('status', '')) }}">
+                        Page {{ p }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Next button -->
+            <a class="btn btn-outline-primary ml-2 {% if page >= total_pages %}disabled{% endif %}"
+               href="{{ url_for('frontend.index', page=page+1, q=request.args.get('q', ''), category=request.args.get('category', ''), status=request.args.get('status', '')) }}"
+               {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}
+               aria-label="Next page">
+                Next <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+(function() {
+    var header = document.getElementById('heroHeader');
+    var toggle = document.getElementById('heroToggle');
+    if (!header || !toggle) return;
+
+    var storageKey = 'hideHeroHeader';
+
+    function updateToggle(hidden) {
+        var icon = toggle.querySelector('i');
+        if (hidden) {
+            icon.className = 'fas fa-chevron-down';
+            toggle.setAttribute('aria-label', 'Show header');
+        } else {
+            icon.className = 'fas fa-chevron-up';
+            toggle.setAttribute('aria-label', 'Hide header');
+        }
+    }
+
+    function setHidden(hidden) {
+        if (hidden) {
+            header.classList.add('is-hidden');
+        } else {
+            header.classList.remove('is-hidden');
+        }
+        updateToggle(hidden);
+        localStorage.setItem(storageKey, hidden ? '1' : '0');
+    }
+
+    var storedHidden = localStorage.getItem(storageKey) === '1';
+    if (storedHidden) {
+        header.classList.add('is-hidden');
+    }
+    updateToggle(storedHidden);
+
+    toggle.addEventListener('click', function() {
+        setHidden(!header.classList.contains('is-hidden'));
+    });
+})();
+</script>
+{% endblock %}

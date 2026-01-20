@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "admin",
+      "email": "admin@sailfishos.app",
+      "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$lU40hHgzMGGqxXz6icYjwg$Rg0goiKp2Mm7P8E7fjO8rjvAHFc/5budpWooSssgpSc",
+      "role": "admin"
+    }
+  ]
+}

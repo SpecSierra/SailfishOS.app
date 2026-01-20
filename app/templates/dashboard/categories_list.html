@@ -1,0 +1,58 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Categories - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tags"></i> Categories</h1>
+    <a href="{{ url_for('dashboard.categories_add') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Category
+    </a>
+</div>
+
+{% if categories %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>
+                    <i class="fas {{ category.icon or 'fa-mobile-alt' }} fa-lg text-primary"></i>
+                </td>
+                <td><strong>{{ category.name }}</strong></td>
+                <td><code>{{ category.slug }}</code></td>
+                <td>
+                    <a href="{{ url_for('dashboard.categories_edit', slug=category.slug) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('dashboard.categories_delete', slug=category.slug) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this category?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-tags"></i>
+    <h4>No categories yet</h4>
+    <p>Start by adding your first category.</p>
+    <a href="{{ url_for('dashboard.categories_add') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Category
+    </a>
+</div>
+{% endif %}
+{% endblock %}

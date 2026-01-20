@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}About - SailfishOS App Compatibility{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1><i class="fas fa-info-circle text-primary"></i> About SailfishOS.app</h1>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3>What is this?</h3>
+                <p>
+                    SailfishOS.app is a community-driven compatibility database for Android apps on SailfishOS,
+                    similar to <a href="https://www.protondb.com/" target="_blank" rel="noopener">ProtonDB</a>
+                    for Linux gaming or <a href="https://appdb.winehq.org/" target="_blank" rel="noopener">Wine AppDB</a>.
+                </p>
+
+                <h3 class="mt-4">How does it work?</h3>
+                <p>
+                    We list popular Android apps and show their compatibility status on SailfishOS:
+                </p>
+                <ul>
+                    <li><strong>Native Apps:</strong> SailfishOS-native alternatives built specifically for the platform</li>
+                    <li><strong>Android App Support:</strong> How well the Android version works through SailfishOS's Android compatibility layer</li>
+                </ul>
+
+                <h3 class="mt-4">Compatibility Ratings</h3>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="badge-example"><span class="badge badge-works">Works</span> App functions correctly</div>
+                        <div class="badge-example"><span class="badge badge-partial">Partial</span> Some features may not work</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="badge-example"><span class="badge badge-no">Does Not Work</span> App is not usable</div>
+                        <div class="badge-example"><span class="badge badge-unknown">Unknown</span> Not yet tested</div>
+                    </div>
+                </div>
+
+                <h3 class="mt-4">Contributing</h3>
+                <p>
+                    This database is crowdsourced! If you have tested an app on SailfishOS,
+                    your reports help other users know what to expect.
+                </p>
+
+                <h3 class="mt-4">License</h3>
+                <p>
+                    This app is licensed under GPLv3.
+                </p>
+
+                <h3 class="mt-4">Development Status</h3>
+                <p>
+                    <span class="badge badge-warning">Beta</span> This project is in active development.
+                    Some features may be incomplete or change without notice.
+                    We welcome feedback and contributions!
+                </p>
+
+                <h3 class="mt-4">About SailfishOS</h3>
+                <p>
+                    <a href="https://sailfishos.org/" target="_blank" rel="noopener">SailfishOS</a> is a mobile
+                    operating system developed by Jolla. It's based on Linux and features a unique gesture-based
+                    user interface. SailfishOS can run Android apps through its Android App Support layer.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment
+.env
+.env.local
+*.env
+
+# Data (keep structure, ignore sensitive data)
+# data/users.json  # Uncomment to ignore user data
+
+# Logs
+*.log

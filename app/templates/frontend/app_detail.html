@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app.android_name }} - SailfishOS Compatibility{% endblock %}
+
+{% block extra_css %}
+<!-- hCaptcha -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Apps</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ app.android_name }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-4">
+                    <div class="app-icon app-icon-lg mr-3">
+                        {% if app.android_icon_url %}
+                        <img src="{{ app.android_icon_url }}" alt="{{ app.android_name }}">
+                        {% else %}
+                        <i class="fab fa-android" aria-hidden="true"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h1 class="h2 mb-1">{{ app.android_name }}</h1>
+                        {% if app.category and category_map.get(app.category) %}
+                        <span class="category-badge">
+                            <i class="fas {{ category_map[app.category].icon }}"></i>
+                            {{ category_map[app.category].name }}
+                        </span>
+                        {% endif %}
+                        {% if app.android_package %}
+                        <p class="text-muted small mt-2 mb-0">
+                            <i class="fas fa-cube"></i> {{ app.android_package }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if app.android_description %}
+                <p class="lead">{{ app.android_description }}</p>
+                {% endif %}
+
+                <hr>
+
+                <!-- SailfishOS Compatibility -->
+                <h3 class="h5 mb-3"><i class="fas fa-ship text-primary"></i> SailfishOS Compatibility</h3>
+
+                <!-- Native App Section -->
+                <div class="card mb-3 {% if app.native_exists %}border-info{% else %}border-secondary{% endif %}">
+                    <div class="card-header {% if app.native_exists %}bg-info text-white{% else %}bg-light{% endif %}">
+                        <i class="fas fa-mobile-alt"></i> Native App
+                    </div>
+                    <div class="card-body">
+                        {% if app.native_exists %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">{{ app.native_name }}</h5>
+                                {% if app.native_store_url %}
+                                <a href="{{ app.native_store_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> View in Store
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="text-right">
+                                {% if app.native_rating > 0 %}
+                                <div class="rating rating-lg" role="img" aria-label="Rating: {{ app.native_rating }} out of 5 stars">
+                                    {% for i in range(5) %}
+                                        {% if i < app.native_rating %}
+                                        <i class="fas fa-star" aria-hidden="true"></i>
+                                        {% else %}
+                                        <i class="fas fa-star empty" aria-hidden="true"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">{{ app.native_rating }}/5</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-info-circle"></i> No native SailfishOS app available
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Android App Support Section -->
+                {% set display_status = community_status if community_status else app.android_support_works %}
+                <div class="card {% if display_status == 'yes' %}border-success{% elif display_status == 'partial' %}border-warning{% elif display_status == 'no' %}border-danger{% else %}border-secondary{% endif %}">
+                    <div class="card-header
+                        {% if display_status == 'yes' %}bg-success text-white
+                        {% elif display_status == 'partial' %}bg-warning
+                        {% elif display_status == 'no' %}bg-danger text-white
+                        {% else %}bg-light{% endif %}">
+                        <i class="fab fa-android"></i> Android App Support
+                        {% if report_count > 0 %}
+                        <small class="ml-2">(based on {{ report_count }} report{% if report_count != 1 %}s{% endif %})</small>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                {% if display_status == 'yes' %}
+                                <span class="badge badge-works badge-lg">
+                                    <i class="fas fa-check" aria-hidden="true"></i> Works
+                                </span>
+                                {% elif display_status == 'partial' %}
+                                <span class="badge badge-partial badge-lg">
+                                    <i class="fas fa-exclamation" aria-hidden="true"></i> Partial
+                                </span>
+                                {% elif display_status == 'no' %}
+                                <span class="badge badge-no badge-lg">
+                                    <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
+                                </span>
+                                {% else %}
+                                <span class="badge badge-unknown badge-lg">
+                                    <i class="fas fa-question" aria-hidden="true"></i> Unknown
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-right">
+                                {% if community_rating > 0 %}
+                                <div class="rating rating-lg" role="img" aria-label="Community rating: {{ community_rating }} out of 5 stars">
+                                    {% for i in range(5) %}
+                                        {% if i < community_rating|round %}
+                                        <i class="fas fa-star" aria-hidden="true"></i>
+                                        {% else %}
+                                        <i class="fas fa-star empty" aria-hidden="true"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">{{ community_rating }}/5 community rating</small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if app.android_support_notes %}
+                        <div class="alert alert-secondary">
+                            <strong><i class="fas fa-sticky-note"></i> Notes:</strong>
+                            <p class="mb-0 mt-2">{{ app.android_support_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Community Reports Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-users"></i> Community Reports ({{ reports|length }})
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                    {% for report in reports %}
+                    <div class="report-item border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ report.reporter_name or 'Anonymous' }}</strong>
+                                <span class="text-muted small ml-2">{{ report.created_at[:10] if report.created_at else '' }}</span>
+                            </div>
+                            <div>
+                                {% if report.android_support_works == 'yes' %}
+                                <span class="badge badge-works">Works</span>
+                                {% elif report.android_support_works == 'partial' %}
+                                <span class="badge badge-partial">Partial</span>
+                                {% elif report.android_support_works == 'no' %}
+                                <span class="badge badge-no">No</span>
+                                {% else %}
+                                <span class="badge badge-unknown">Unknown</span>
+                                {% endif %}
+
+                                {% if report.rating > 0 %}
+                                <span class="rating ml-2" role="img" aria-label="Rating: {{ report.rating }} out of 5 stars">
+                                    {% for i in range(5) %}
+                                        {% if i < report.rating %}
+                                        <i class="fas fa-star" aria-hidden="true"></i>
+                                        {% else %}
+                                        <i class="fas fa-star empty" aria-hidden="true"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if report.device or report.sailfish_version or report.app_version %}
+                        <div class="text-muted small mt-1">
+                            {% if report.device %}<span class="mr-2"><i class="fas fa-mobile-alt" aria-hidden="true"></i> {{ report.device }}</span>{% endif %}
+                            {% if report.sailfish_version %}<span class="mr-2"><i class="fas fa-ship" aria-hidden="true"></i> {{ report.sailfish_version }}</span>{% endif %}
+                            {% if report.app_version %}<span><i class="fab fa-android" aria-hidden="true"></i> v{{ report.app_version }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if report.notes %}
+                        <p class="mt-2 mb-0">{{ report.notes }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">No community reports yet. Be the first to submit one!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submit Report Form -->
+        <div class="card mt-4" id="submit-report-card">
+            <div class="card-header">
+                <button class="btn collapse-toggle text-left w-100 p-0" type="button" data-toggle="collapse" data-target="#submit-report" aria-expanded="{{ 'true' if form.errors or not reports else 'false' }}" aria-controls="submit-report">
+                    <i class="fas fa-plus-circle" aria-hidden="true"></i> Submit Your Report
+                    <i class="fas fa-chevron-down float-right mt-1" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div id="submit-report" class="card-body collapse{% if form.errors or not reports %} show{% endif %}">
+                <p class="text-muted">Have you tested this app on SailfishOS? Share your experience!</p>
+
+                <form method="POST" action="{{ url_for('frontend.app_detail', app_id=app.id) }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="reporter_name"><i class="fas fa-user"></i> Your Name (optional)</label>
+                                {{ form.reporter_name(class="form-control", placeholder="Anonymous") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="android_support_works"><i class="fas fa-check-circle"></i> Does it work? *</label>
+                                {{ form.android_support_works(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="rating"><i class="fas fa-star"></i> Rating</label>
+                                {{ form.rating(class="form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="device"><i class="fas fa-mobile-alt"></i> Device</label>
+                                {{ form.device(class="form-control", placeholder="e.g., Xperia 10 III") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="sailfish_version"><i class="fas fa-ship"></i> SFOS Version</label>
+                                {{ form.sailfish_version(class="form-control", placeholder="e.g., 4.5.0") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="app_version"><i class="fab fa-android"></i> App Version (optional)</label>
+                        {{ form.app_version(class="form-control", placeholder="e.g., 2.23.10") }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes"><i class="fas fa-sticky-note"></i> Notes / Details</label>
+                        {{ form.notes(class="form-control", rows=3, placeholder="Share any issues, workarounds, or tips...") }}
+                    </div>
+
+                    <!-- hCaptcha -->
+                    <div class="form-group">
+                        <div class="h-captcha" data-sitekey="{{ hcaptcha_site_key }}"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Information
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Category</dt>
+                    <dd>
+                        {% if app.category and category_map.get(app.category) %}
+                        <i class="fas {{ category_map[app.category].icon }}"></i>
+                        {{ category_map[app.category].name }}
+                        {% else %}
+                        Uncategorized
+                        {% endif %}
+                    </dd>
+
+                    <dt>Community Reports</dt>
+                    <dd><i class="fas fa-users"></i> {{ app.reports_count or 0 }} reports</dd>
+
+                    {% if app.updated_at %}
+                    <dt>Last Updated</dt>
+                    <dd><i class="fas fa-clock"></i> {{ app.updated_at[:10] }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="fas fa-lightbulb"></i> Quick Summary
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    {% if app.native_exists %}
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Native app available: <strong>{{ app.native_name }}</strong>
+                    </li>
+                    {% endif %}
+
+                    {% if app.android_support_works == 'yes' %}
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Works via Android App Support
+                    </li>
+                    {% elif app.android_support_works == 'partial' %}
+                    <li class="mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        Partial Android App Support
+                    </li>
+                    {% elif app.android_support_works == 'no' %}
+                    <li class="mb-2">
+                        <i class="fas fa-times text-danger"></i>
+                        Does not work via Android App Support
+                    </li>
+                    {% else %}
+                    <li class="mb-2">
+                        <i class="fas fa-question text-muted"></i>
+                        Android App Support status unknown
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-hand-pointer"></i> Contribute
+            </div>
+            <div class="card-body">
+                <p class="small mb-0">
+                    Have you tested <strong>{{ app.android_name }}</strong> on SailfishOS?
+                    Help the community by submitting a compatibility report!
+                </p>
+                <a href="#submit-report-card" class="btn btn-outline-info btn-sm mt-2">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Add Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

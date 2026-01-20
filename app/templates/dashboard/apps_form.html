@@ -1,0 +1,289 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ title }} - Dashboard{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+{% if title == 'Add App' %}
+<!-- hCaptcha -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+{% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-mobile-alt"></i> {{ title }}</h1>
+    <a href="{{ url_for('dashboard.apps_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Apps
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <!-- Android App Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fab fa-android"></i> Android App Information
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="android_name">App Name *</label>
+                        {{ form.android_name(class="form-control") }}
+                        {% for error in form.android_name.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="android_package">Package Name</label>
+                        {{ form.android_package(class="form-control", placeholder="com.example.app") }}
+                        {% for error in form.android_package.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="android_description">Description</label>
+                        {{ form.android_description(class="form-control", rows=3) }}
+                        {% for error in form.android_description.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="android_icon_url">Icon URL</label>
+                        <div class="input-group">
+                            {{ form.android_icon_url(class="form-control", placeholder="https://...") }}
+                            {% if app and app.android_package %}
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-info" id="fetchIconBtn" title="Fetch icon and description from Play Store">
+                                    <i class="fas fa-cloud-download-alt" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% for error in form.android_icon_url.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                        {% if app and app.android_icon_url %}
+                        <div class="mt-2">
+                            <img src="{{ app.android_icon_url }}" alt="Current icon" style="width: 48px; height: 48px; border-radius: 8px;">
+                            <small class="text-muted ml-2">Current icon</small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        {{ form.category(class="form-control") }}
+                        {% for error in form.category.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Native App Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-ship"></i> Native SailfishOS App
+                </div>
+                <div class="card-body">
+                    <div class="form-group form-check">
+                        {{ form.native_exists(class="form-check-input") }}
+                        <label class="form-check-label" for="native_exists">Native app exists</label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="native_name">Native App Name</label>
+                        {{ form.native_name(class="form-control") }}
+                        {% for error in form.native_name.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="native_store_url">Store URL</label>
+                        {{ form.native_store_url(class="form-control", placeholder="https://openrepos.net/...") }}
+                        {% for error in form.native_store_url.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="native_rating">Rating</label>
+                        {{ form.native_rating(class="form-control") }}
+                        {% for error in form.native_rating.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Android App Support -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fab fa-android"></i> Android App Support Compatibility
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="android_support_works">Status</label>
+                        {{ form.android_support_works(class="form-control") }}
+                        {% for error in form.android_support_works.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="android_support_rating">Rating</label>
+                        {{ form.android_support_rating(class="form-control") }}
+                        {% for error in form.android_support_rating.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="android_support_notes">Notes</label>
+                        {{ form.android_support_notes(class="form-control", rows=3, placeholder="Any issues, workarounds, or tips...") }}
+                        {% for error in form.android_support_notes.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {% if title == 'Add App' and hcaptcha_site_key %}
+            <!-- hCaptcha -->
+            <div class="form-group">
+                <div class="h-captcha" data-sitekey="{{ hcaptcha_site_key }}"></div>
+            </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save App
+                </button>
+                <a href="{{ url_for('dashboard.apps_list') }}" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+
+        {% if app %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-clipboard-list"></i> Community Reports ({{ reports|length }})
+            </div>
+            <div class="card-body p-0">
+                {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Reporter</th>
+                                <th>Status</th>
+                                <th>Rating</th>
+                                <th>Notes</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td>{{ report.reporter_name or 'Anonymous' }}</td>
+                                <td>
+                                    {% if report.android_support_works == 'yes' %}
+                                    <span class="badge badge-works">Works</span>
+                                    {% elif report.android_support_works == 'partial' %}
+                                    <span class="badge badge-partial">Partial</span>
+                                    {% elif report.android_support_works == 'no' %}
+                                    <span class="badge badge-no">No</span>
+                                    {% else %}
+                                    <span class="badge badge-unknown">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if report.rating and report.rating|int > 0 %}
+                                    {{ report.rating }}/5
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if report.notes %}
+                                    {{ report.notes|truncate(120, True, '...') }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ report.created_at[:10] if report.created_at else '' }}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('dashboard.reports_delete', report_id=report.id) }}" class="d-inline delete-form">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete report">
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-3">
+                    <p class="text-muted mb-0">No community reports yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function() {
+    // Delete form confirmation
+    var deleteForms = document.querySelectorAll('.delete-form');
+    for (var i = 0; i < deleteForms.length; i++) {
+        deleteForms[i].addEventListener('submit', function(e) {
+            if (!confirm('Are you sure you want to delete this report?')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Fetch info button (icon + description)
+    var fetchIconBtn = document.getElementById('fetchIconBtn');
+    if (fetchIconBtn) {
+        fetchIconBtn.addEventListener('click', function() {
+            {% if app %}
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("dashboard.fetch_app_info", app_id=app.id) }}';
+
+            var csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            form.appendChild(csrfInput);
+
+            document.body.appendChild(form);
+
+            fetchIconBtn.disabled = true;
+            fetchIconBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+
+            form.submit();
+            {% endif %}
+        });
+    }
+})();
+</script>
+{% endblock %}

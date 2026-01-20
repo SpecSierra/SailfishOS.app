@@ -1,0 +1,132 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Users - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-users" aria-hidden="true"></i> Users</h1>
+</div>
+
+{% if users %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr {% if user.is_banned %}class="table-danger"{% endif %}>
+                <td>
+                    <strong>{{ user.username }}</strong>
+                    {% if user.id == current_user.id %}
+                    <span class="badge badge-info">You</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.role == 'admin' %}
+                    <span class="badge badge-danger">Admin</span>
+                    {% elif user.role == 'moderator' %}
+                    <span class="badge badge-warning">Moderator</span>
+                    {% else %}
+                    <span class="badge badge-secondary">User</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_banned %}
+                    <span class="badge badge-dark">Banned</span>
+                    {% else %}
+                    <span class="badge badge-success">Active</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.id != current_user.id %}
+                    <div class="btn-group" role="group">
+                        <!-- Role dropdown -->
+                        <div class="dropdown d-inline">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-user-tag" aria-hidden="true"></i> Role
+                            </button>
+                            <div class="dropdown-menu">
+                                <form method="POST" action="{{ url_for('dashboard.users_set_role', user_id=user.id) }}" class="px-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="role" value="user">
+                                    <button type="submit" class="dropdown-item {% if user.role == 'user' %}active{% endif %}">
+                                        User
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('dashboard.users_set_role', user_id=user.id) }}" class="px-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="role" value="moderator">
+                                    <button type="submit" class="dropdown-item {% if user.role == 'moderator' %}active{% endif %}">
+                                        Moderator
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('dashboard.users_set_role', user_id=user.id) }}" class="px-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="role" value="admin">
+                                    <button type="submit" class="dropdown-item {% if user.role == 'admin' %}active{% endif %}">
+                                        Admin
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Ban/Unban button -->
+                        {% if user.role != 'admin' %}
+                            {% if user.is_banned %}
+                            <form method="POST" action="{{ url_for('dashboard.users_unban', user_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Unban user">
+                                    <i class="fas fa-user-check" aria-hidden="true"></i> Unban
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('dashboard.users_ban', user_id=user.id) }}" class="d-inline ban-form" data-confirm="Are you sure you want to ban {{ user.username }}?">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Ban user">
+                                    <i class="fas fa-user-slash" aria-hidden="true"></i> Ban
+                                </button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-users" aria-hidden="true"></i>
+    <h4>No users found</h4>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function() {
+    var banForms = document.querySelectorAll('.ban-form');
+    for (var i = 0; i < banForms.length; i++) {
+        banForms[i].addEventListener('submit', function(e) {
+            var message = this.getAttribute('data-confirm') || 'Are you sure?';
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

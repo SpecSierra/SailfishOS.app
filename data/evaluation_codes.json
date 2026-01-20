@@ -1,0 +1,40 @@
+{
+  "evaluation_codes": {
+    "native": {
+      "N1": {"label": "Native app - works", "rating": 5, "type": "native"},
+      "N2": {"label": "Native app - works mostly", "rating": 4, "type": "native"},
+      "N3": {"label": "Native app - some things work", "rating": 2, "type": "native"},
+      "N4": {"label": "Native app - useless", "rating": 1, "type": "native"}
+    },
+    "android": {
+      "A1": {"label": "Android app - works", "rating": 5, "type": "android"},
+      "A2": {"label": "Android app - works mostly", "rating": 4, "type": "android"},
+      "A3": {"label": "Android app - some things work", "rating": 2, "type": "android"},
+      "A4": {"label": "Android app - useless", "rating": 1, "type": "android"}
+    },
+    "microg": {
+      "G1": {"label": "Android app - works with MicroG", "rating": 5, "type": "microg"},
+      "G2": {"label": "Android app - works mostly with MicroG", "rating": 4, "type": "microg"},
+      "G3": {"label": "Android app - some things work with MicroG", "rating": 2, "type": "microg"},
+      "G4": {"label": "Android app - useless even with MicroG", "rating": 1, "type": "microg"}
+    },
+    "web_sailfish": {
+      "W1": {"label": "Web access - works with SailfishOS Browser", "rating": 5, "type": "web_sailfish"},
+      "W2": {"label": "Web access - works mostly with SailfishOS Browser", "rating": 4, "type": "web_sailfish"},
+      "W3": {"label": "Web access - some things work with SailfishOS Browser", "rating": 2, "type": "web_sailfish"},
+      "W4": {"label": "Web access - useless with SailfishOS Browser", "rating": 1, "type": "web_sailfish"}
+    },
+    "web_android": {
+      "X1": {"label": "Web access - works with Android browser on AAS", "rating": 5, "type": "web_android"},
+      "X2": {"label": "Web access - works mostly with Android browser on AAS", "rating": 4, "type": "web_android"},
+      "X3": {"label": "Web access - some things work with Android browser on AAS", "rating": 2, "type": "web_android"},
+      "X4": {"label": "Web access - useless with Android browser on AAS", "rating": 1, "type": "web_android"}
+    },
+    "web_android_microg": {
+      "Y1": {"label": "Web access - works with Android browser on AAS with MicroG", "rating": 5, "type": "web_android_microg"},
+      "Y2": {"label": "Web access - works mostly with Android browser on AAS with MicroG", "rating": 4, "type": "web_android_microg"},
+      "Y3": {"label": "Web access - some things work with Android browser on AAS with MicroG", "rating": 2, "type": "web_android_microg"},
+      "Y4": {"label": "Web access - useless with Android browser on AAS with MicroG", "rating": 1, "type": "web_android_microg"}
+    }
+  }
+}

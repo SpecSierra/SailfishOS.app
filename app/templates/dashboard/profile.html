@@ -1,0 +1,130 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}My Profile - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-user" aria-hidden="true"></i> My Profile</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-id-card" aria-hidden="true"></i> Account Info
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ current_user.username }}</p>
+                <p><strong>Role:</strong>
+                    {% if current_user.role == 'admin' %}
+                    <span class="badge badge-danger">Admin</span>
+                    {% elif current_user.role == 'moderator' %}
+                    <span class="badge badge-warning">Moderator</span>
+                    {% else %}
+                    <span class="badge badge-info">User</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="card mt-3 border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Danger Zone
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Permanently delete your account. This action cannot be undone.</p>
+                <form method="POST" action="{{ url_for('dashboard.profile_delete') }}" id="deleteAccountForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash" aria-hidden="true"></i> Delete Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i> My Contributions ({{ reports|length }})
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>App</th>
+                                <th>Status</th>
+                                <th>Rating</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            {% set app = app_map.get(report.app_id) %}
+                            <tr>
+                                <td>
+                                    {% if app %}
+                                    <a href="{{ url_for('frontend.app_detail', app_id=app.id) }}">
+                                        {{ app.android_name }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">Unknown app</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if report.android_support_works == 'yes' %}
+                                    <span class="badge badge-works">Works</span>
+                                    {% elif report.android_support_works == 'partial' %}
+                                    <span class="badge badge-partial">Partial</span>
+                                    {% elif report.android_support_works == 'no' %}
+                                    <span class="badge badge-no">No</span>
+                                    {% else %}
+                                    <span class="badge badge-unknown">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if report.rating and report.rating|int > 0 %}
+                                    {{ report.rating }}/5
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ report.created_at[:10] if report.created_at else '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-clipboard-list fa-3x mb-3" aria-hidden="true"></i>
+                    <p>You haven't submitted any reports yet.</p>
+                    <a href="{{ url_for('frontend.index') }}" class="btn btn-primary">
+                        <i class="fas fa-list" aria-hidden="true"></i> Browse Apps
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function() {
+    var deleteForm = document.getElementById('deleteAccountForm');
+    if (deleteForm) {
+        deleteForm.addEventListener('submit', function(e) {
+            var confirmed = confirm('Are you sure you want to delete your account?\n\nThis action CANNOT be undone. All your data will be permanently removed.');
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

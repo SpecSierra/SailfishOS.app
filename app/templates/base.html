@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+    // Apply theme immediately to prevent flash
+    // Always set explicit data-theme to avoid CSS duplication
+    (function() {
+        var theme = localStorage.getItem('theme');
+        if (theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+        } else {
+            // Set theme based on system preference
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        }
+    })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}SailfishOS App Compatibility{% endblock %}</title>
+
+    <!-- Bootstrap 4.6 CSS (compatible with Firefox ESR 78) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+
+    <!-- FontAwesome 5 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('frontend.index') }}">
+                <i class="fas fa-ship"></i> SailfishOS.app
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('frontend.index') }}">
+                            <i class="fas fa-list"></i> Apps
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.index') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.login') }}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.register') }}">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('frontend.about') }}">
+                            <i class="fas fa-info-circle"></i> About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="theme-toggle" id="themeToggle" type="button" title="Toggle theme" aria-label="Toggle dark/light theme">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main id="main-content" class="{% block main_class %}container py-4{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-4 bg-dark text-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-ship"></i> SailfishOS.app</h5>
+                    <p class="text-muted">Community-driven app compatibility database for SailfishOS</p>
+                </div>
+                <div class="col-md-6 text-md-right">
+                    <p class="text-muted mb-1">
+                        Like <a href="https://www.protondb.com/" target="_blank" rel="noopener">ProtonDB</a> but for SailfishOS
+                    </p>
+                    <p class="text-muted small">
+                        Data is crowdsourced from the community
+                    </p>
+                    <p class="text-muted small mb-0">
+                        Version {{ app_version }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery and Bootstrap JS (compatible with Firefox ESR 78) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script>
+
+    <!-- Theme toggle script -->
+    <script>
+    (function() {
+        var html = document.documentElement;
+        var themeToggle = document.getElementById('themeToggle');
+        var themeIcon = document.getElementById('themeIcon');
+
+        // Check if currently in dark mode
+        function isDarkMode() {
+            return html.getAttribute('data-theme') === 'dark';
+        }
+
+        // Get system preference
+        function getSystemPreference() {
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        // Update the icon based on current theme
+        function updateIcon() {
+            if (isDarkMode()) {
+                themeIcon.className = 'fas fa-sun';
+                themeToggle.setAttribute('title', 'Switch to light theme');
+                themeToggle.setAttribute('aria-label', 'Switch to light theme');
+            } else {
+                themeIcon.className = 'fas fa-moon';
+                themeToggle.setAttribute('title', 'Switch to dark theme');
+                themeToggle.setAttribute('aria-label', 'Switch to dark theme');
+            }
+        }
+
+        // Apply theme - always sets explicit data-theme
+        function applyTheme() {
+            var stored = localStorage.getItem('theme');
+            var theme = stored || getSystemPreference();
+            html.setAttribute('data-theme', theme);
+            updateIcon();
+        }
+
+        // Toggle between themes
+        function toggleTheme() {
+            var newTheme = isDarkMode() ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon();
+        }
+
+        // Initialize
+        applyTheme();
+
+        // Handle toggle click
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Listen for system preference changes (use addEventListener instead of deprecated addListener)
+        if (window.matchMedia) {
+            var mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            var handleChange = function() {
+                // Only react if user hasn't set explicit preference
+                if (!localStorage.getItem('theme')) {
+                    html.setAttribute('data-theme', getSystemPreference());
+                    updateIcon();
+                }
+            };
+            // Modern browsers
+            if (mediaQuery.addEventListener) {
+                mediaQuery.addEventListener('change', handleChange);
+            } else if (mediaQuery.addListener) {
+                // Fallback for older browsers (Firefox ESR 78)
+                mediaQuery.addListener(handleChange);
+            }
+        }
+    })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

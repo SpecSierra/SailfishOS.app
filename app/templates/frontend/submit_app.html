@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Submit New App - SailfishOS.app{% endblock %}
+
+{% block extra_css %}
+<!-- hCaptcha -->
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Apps</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Submit New App</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Submit a New App</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Can't find an app in our database? Submit it here! Just provide the Play Store package name
+                    and we'll automatically fetch the app information.
+                </p>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>How to find the package name:</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>Go to the app on <a href="https://play.google.com/store" target="_blank" rel="noopener">Google Play Store</a></li>
+                        <li>Look at the URL: <code>play.google.com/store/apps/details?id=<strong>com.example.app</strong></code></li>
+                        <li>The package name is after <code>id=</code> (e.g., <code>com.whatsapp</code>)</li>
+                    </ol>
+                </div>
+
+                <form method="POST" action="{{ url_for('frontend.submit_app') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        <label for="android_package">
+                            <i class="fas fa-cube"></i> Play Store Package Name
+                        </label>
+                        {{ form.android_package(class="form-control", placeholder="e.g., com.whatsapp") }}
+                        {% for error in form.android_package.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                        <small class="form-text text-muted">
+                            Example: com.spotify.music, com.instagram.android
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">
+                            <i class="fas fa-tag"></i> Category
+                        </label>
+                        {{ form.category(class="form-control") }}
+                        {% for error in form.category.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <!-- hCaptcha -->
+                    <div class="form-group">
+                        <div class="h-captcha" data-sitekey="{{ hcaptcha_site_key }}"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-plus"></i> Submit App
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center text-muted mt-3">
+            <a href="{{ url_for('frontend.index') }}"><i class="fas fa-arrow-left"></i> Back to Apps</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

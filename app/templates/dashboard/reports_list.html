@@ -1,0 +1,113 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Reports - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Reports</h1>
+</div>
+
+{% if reports %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>App</th>
+                <th>Reporter</th>
+                <th>Status</th>
+                <th>Rating</th>
+                <th>Details</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            {% set app = app_map.get(report.app_id) %}
+            <tr>
+                <td>
+                    {% if app %}
+                    <strong>{{ app.android_name }}</strong>
+                    {% if app.android_package %}
+                    <br><small class="text-muted">{{ app.android_package }}</small>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-muted">Unknown app</span>
+                    {% endif %}
+                </td>
+                <td>{{ report.reporter_name or 'Anonymous' }}</td>
+                <td>
+                    {% if report.android_support_works == 'yes' %}
+                    <span class="badge badge-works">Works</span>
+                    {% elif report.android_support_works == 'partial' %}
+                    <span class="badge badge-partial">Partial</span>
+                    {% elif report.android_support_works == 'no' %}
+                    <span class="badge badge-no">No</span>
+                    {% else %}
+                    <span class="badge badge-unknown">Unknown</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.rating and report.rating|int > 0 %}
+                    {{ report.rating }}/5
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.device %}
+                    <div><small class="text-muted"><i class="fas fa-mobile-alt" aria-hidden="true"></i> {{ report.device }}</small></div>
+                    {% endif %}
+                    {% if report.sailfish_version %}
+                    <div><small class="text-muted"><i class="fas fa-ship" aria-hidden="true"></i> {{ report.sailfish_version }}</small></div>
+                    {% endif %}
+                    {% if report.app_version %}
+                    <div><small class="text-muted"><i class="fab fa-android" aria-hidden="true"></i> v{{ report.app_version }}</small></div>
+                    {% endif %}
+                    {% if report.notes %}
+                    <div>
+                        <small class="text-muted">
+                            {{ report.notes|truncate(120, True, '...') }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </td>
+                <td>{{ report.created_at[:10] if report.created_at else '' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('dashboard.reports_delete', report_id=report.id) }}" class="d-inline delete-form" data-confirm="Are you sure you want to delete this report?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete report">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+    <h4>No reports yet</h4>
+    <p>Community reports will appear here once users submit them.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function() {
+    var deleteForms = document.querySelectorAll('.delete-form');
+    for (var i = 0; i < deleteForms.length; i++) {
+        deleteForms[i].addEventListener('submit', function(e) {
+            var message = this.getAttribute('data-confirm') || 'Are you sure you want to delete this?';
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

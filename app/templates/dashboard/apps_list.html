@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Apps - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-mobile-alt" aria-hidden="true"></i> Apps</h1>
+    <div>
+        <form method="POST" action="{{ url_for('dashboard.fetch_all_info') }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-info mr-2" title="Fetch icons and descriptions from Play Store">
+                <i class="fas fa-cloud-download-alt" aria-hidden="true"></i> Fetch from Play Store
+            </button>
+        </form>
+        <a href="{{ url_for('dashboard.apps_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus" aria-hidden="true"></i> Add App
+        </a>
+    </div>
+</div>
+
+{% if apps %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>App Name</th>
+                <th>Category</th>
+                <th>Native App</th>
+                <th>Android Support</th>
+                <th>Reports</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in apps %}
+            <tr>
+                <td>
+                    <strong>{{ app.android_name }}</strong>
+                    {% if app.android_package %}
+                    <br><small class="text-muted">{{ app.android_package }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if app.category and category_map.get(app.category) %}
+                    <span class="category-badge">
+                        <i class="fas {{ category_map[app.category].icon }}" aria-hidden="true"></i>
+                        {{ category_map[app.category].name }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if app.native_exists %}
+                    <span class="badge badge-native">{{ app.native_name }}</span>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if app.android_support_works == 'yes' %}
+                    <span class="badge badge-works">Works</span>
+                    {% elif app.android_support_works == 'partial' %}
+                    <span class="badge badge-partial">Partial</span>
+                    {% elif app.android_support_works == 'no' %}
+                    <span class="badge badge-no">No</span>
+                    {% else %}
+                    <span class="badge badge-unknown">Unknown</span>
+                    {% endif %}
+                </td>
+                <td>{{ app.reports_count or 0 }}</td>
+                <td>
+                    <a href="{{ url_for('dashboard.apps_edit', app_id=app.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Edit {{ app.android_name }}">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('dashboard.apps_delete', app_id=app.id) }}" class="d-inline delete-form" data-confirm="Are you sure you want to delete this app?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete {{ app.android_name }}">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-mobile-alt" aria-hidden="true"></i>
+    <h4>No apps yet</h4>
+    <p>Start by adding your first app to the database.</p>
+    <a href="{{ url_for('dashboard.apps_add') }}" class="btn btn-primary">
+        <i class="fas fa-plus" aria-hidden="true"></i> Add App
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function() {
+    var deleteForms = document.querySelectorAll('.delete-form');
+    for (var i = 0; i < deleteForms.length; i++) {
+        deleteForms[i].addEventListener('submit', function(e) {
+            var message = this.getAttribute('data-confirm') || 'Are you sure you want to delete this?';
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

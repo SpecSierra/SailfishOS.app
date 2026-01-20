@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ title }} - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-tags"></i> {{ title }}</h1>
+    <a href="{{ url_for('dashboard.categories_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Categories
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        <label for="name">Category Name *</label>
+                        {{ form.name(class="form-control", placeholder="e.g., Social Media") }}
+                        {% for error in form.name.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="slug">Slug *</label>
+                        {{ form.slug(class="form-control", placeholder="e.g., social_media") }}
+                        <small class="form-text text-muted">URL-friendly identifier (lowercase, underscores)</small>
+                        {% for error in form.slug.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="icon">FontAwesome Icon</label>
+                        {{ form.icon(class="form-control", placeholder="e.g., fa-share-alt") }}
+                        <small class="form-text text-muted">
+                            Browse icons at <a href="https://fontawesome.com/v5/search?m=free&s=solid" target="_blank" rel="noopener">FontAwesome</a>
+                        </small>
+                        {% for error in form.icon.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Category
+                        </button>
+                        <a href="{{ url_for('dashboard.categories_list') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

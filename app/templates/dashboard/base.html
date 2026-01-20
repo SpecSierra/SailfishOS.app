@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block main_class %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar backdrop for mobile -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar" id="dashboardSidebar" role="navigation" aria-label="Dashboard navigation">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                            <i class="fas fa-tachometer-alt" aria-hidden="true"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'apps' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.apps_list') }}">
+                            <i class="fas fa-mobile-alt" aria-hidden="true"></i> Apps
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'categories' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.categories_list') }}">
+                            <i class="fas fa-tags" aria-hidden="true"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.reports_list') }}">
+                            <i class="fas fa-clipboard-list" aria-hidden="true"></i> Reports
+                        </a>
+                    </li>
+                    {% if current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'users' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.users_list') }}">
+                            <i class="fas fa-users" aria-hidden="true"></i> Users
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <hr class="my-3" style="border-color: rgba(255,255,255,0.1);">
+
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.profile' %}active{% endif %}" href="{{ url_for('dashboard.profile') }}">
+                            <i class="fas fa-user" aria-hidden="true"></i> My Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('frontend.index') }}">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Site
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard.logout') }}">
+                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Mobile sidebar toggle button -->
+        <button class="btn btn-primary sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="dashboardSidebar">
+            <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+
+        <!-- Main content -->
+        <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-content">
+            {% block dashboard_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var sidebar = document.getElementById('dashboardSidebar');
+    var toggle = document.getElementById('sidebarToggle');
+    var backdrop = document.getElementById('sidebarBackdrop');
+
+    if (!sidebar || !toggle || !backdrop) return;
+
+    function openSidebar() {
+        sidebar.classList.add('show');
+        backdrop.classList.add('show');
+        toggle.setAttribute('aria-expanded', 'true');
+        toggle.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('show');
+        backdrop.classList.remove('show');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+    }
+
+    toggle.addEventListener('click', function() {
+        if (sidebar.classList.contains('show')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+
+    backdrop.addEventListener('click', closeSidebar);
+
+    // Close sidebar when clicking a nav link on mobile
+    var navLinks = sidebar.querySelectorAll('.nav-link');
+    for (var i = 0; i < navLinks.length; i++) {
+        navLinks[i].addEventListener('click', function() {
+            if (window.innerWidth < 768) {
+                closeSidebar();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
