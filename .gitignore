@@ -36,5 +36,4 @@ data/users.json
 # Logs
 *.log
 
-
 .claude/
