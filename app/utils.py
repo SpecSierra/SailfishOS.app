@@ -192,10 +192,14 @@ def fetch_play_store_info(package_name):
     Returns:
         Dictionary with 'name', 'description', 'icon_url' or None if not found
     """
+    logger.debug(f"fetch_play_store_info called for: {package_name}")
+
     if not package_name:
+        logger.warning("fetch_play_store_info: no package_name provided")
         return None
 
     url = f'https://play.google.com/store/apps/details?id={package_name}&hl=en'
+    logger.debug(f"Fetching Play Store URL: {url}")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -205,6 +209,7 @@ def fetch_play_store_info(package_name):
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
+        logger.debug(f"Play Store response status: {response.status_code}")
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -243,28 +248,34 @@ def fetch_play_store_info(package_name):
 
         # Get icon URL
         og_image = soup.find('meta', property='og:image')
+        logger.debug(f"og:image meta tag: {og_image}")
         if og_image and og_image.get('content'):
             icon_url = og_image['content']
+            logger.debug(f"Found og:image content: {icon_url}")
             if 'googleusercontent.com' in icon_url:
                 result['icon_url'] = icon_url
+                logger.debug(f"Using og:image as icon_url")
 
         # If no icon from og:image, search for it
         if 'icon_url' not in result:
+            logger.debug("No icon from og:image, searching img tags...")
             for img in soup.find_all('img'):
                 src = img.get('src', '') or img.get('data-src', '')
                 if 'play-lh.googleusercontent.com' in src and '=w' in src:
                     icon_url = re.sub(r'=w\d+', '=w256', src)
                     icon_url = re.sub(r'-h\d+', '-h256', icon_url)
                     result['icon_url'] = icon_url
+                    logger.debug(f"Found icon from img tag: {icon_url}")
                     break
 
+        logger.debug(f"fetch_play_store_info result: {result}")
         return result if result else None
 
     except requests.RequestException as e:
-        print(f"Error fetching Play Store page for {package_name}: {e}")
+        logger.error(f"Error fetching Play Store page for {package_name}: {e}")
         return None
     except Exception as e:
-        print(f"Error parsing Play Store page for {package_name}: {e}")
+        logger.error(f"Error parsing Play Store page for {package_name}: {e}", exc_info=True)
         return None
 
 

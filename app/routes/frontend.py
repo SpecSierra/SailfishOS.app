@@ -46,6 +46,64 @@ def debug_icons():
     return result
 
 
+@frontend_bp.route('/debug/test-download/<package_name>')
+def debug_test_download(package_name):
+    """Debug endpoint to test icon download for a package."""
+    import os
+    import traceback
+
+    result = {
+        'package_name': package_name,
+        'steps': []
+    }
+
+    try:
+        # Step 1: Check icons dir
+        from app.utils import ICONS_DIR, ensure_icons_dir, fetch_play_store_info, download_icon
+        result['ICONS_DIR'] = ICONS_DIR
+        result['steps'].append(f"ICONS_DIR = {ICONS_DIR}")
+
+        # Step 2: Ensure dir exists
+        ensure_icons_dir()
+        result['icons_dir_exists'] = os.path.exists(ICONS_DIR)
+        result['steps'].append(f"ensure_icons_dir() called, exists={os.path.exists(ICONS_DIR)}")
+
+        # Step 3: Fetch play store info
+        result['steps'].append(f"Calling fetch_play_store_info({package_name})...")
+        info = fetch_play_store_info(package_name)
+        result['play_store_info'] = info
+        result['steps'].append(f"Got info: {info}")
+
+        if info and info.get('icon_url'):
+            # Step 4: Try to download
+            icon_url = info['icon_url']
+            result['steps'].append(f"Calling download_icon({icon_url}, {package_name})...")
+            local_path = download_icon(icon_url, package_name)
+            result['local_path'] = local_path
+            result['steps'].append(f"download_icon returned: {local_path}")
+
+            # Step 5: Check if file exists
+            if local_path:
+                filename = local_path.split('/')[-1]
+                filepath = os.path.join(ICONS_DIR, filename)
+                result['filepath'] = filepath
+                result['file_exists'] = os.path.exists(filepath)
+                if os.path.exists(filepath):
+                    result['file_size'] = os.path.getsize(filepath)
+                result['steps'].append(f"File exists: {os.path.exists(filepath)}")
+        else:
+            result['steps'].append("No icon_url found in play store info")
+
+        # Final: list icons dir
+        result['final_icons_dir_contents'] = os.listdir(ICONS_DIR)
+
+    except Exception as e:
+        result['error'] = str(e)
+        result['traceback'] = traceback.format_exc()
+
+    return result
+
+
 def verify_hcaptcha(response_token):
     """Verify hCaptcha response token."""
     if not response_token:
