@@ -30,7 +30,11 @@ instance/
 *.env
 
 # Data (keep structure, ignore sensitive data)
-# data/users.json  # Uncomment to ignore user data
+app/static/icons/*
+data/users.json
 
 # Logs
 *.log
+
+
+.claude/
