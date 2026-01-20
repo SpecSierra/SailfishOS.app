@@ -19,4 +19,4 @@ COPY app /code
 RUN mkdir -p /code/data
 
 # Command to run the application
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:create_app()"]
+CMD ["gunicorn", "-b", "0.0.0.0:4000", "app:create_app()"]

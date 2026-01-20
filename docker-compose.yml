@@ -2,11 +2,6 @@ services:
   web:
     build: .
     ports:
-      - "127.0.0.1:5000:5000"
+      - "127.0.0.1:4000:4000"
     volumes:
-      - ./data:/code/data
-    environment:
-      - SECRET_KEY=change-me
-      - APP_VERSION=0.0.1
-      - HCAPTCHA_SITE_KEY=10000000-ffff-ffff-ffff-000000000001
-      - HCAPTCHA_SECRET_KEY=0x000000000000000000000000000000000000000
+      - ./data:/code/dataÒ
