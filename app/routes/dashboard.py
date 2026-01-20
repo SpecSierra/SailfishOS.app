@@ -356,55 +356,47 @@ def reports_delete(report_id):
 @login_required
 def fetch_app_info(app_id):
     """Fetch icon and description for a single app from Play Store."""
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"fetch_app_info called for app_id={app_id}")
-
     app = DataManager.get_app_by_id(app_id)
     if not app:
         flash('App not found.', 'danger')
         return redirect(url_for('dashboard.apps_list'))
 
     package_name = app.get('android_package')
-    logger.info(f"Package name: {package_name}")
     if not package_name:
         flash('No package name set for this app. Cannot fetch info.', 'warning')
         return redirect(url_for('dashboard.apps_edit', app_id=app_id))
 
+    # Clear old icon path if it uses the deprecated location
+    current_icon = app.get('android_icon_url', '')
+    if current_icon.startswith('/static/icons/'):
+        app['android_icon_url'] = ''
+
     info = fetch_and_update_app_info(package_name)
-    logger.info(f"fetch_and_update_app_info returned: {info}")
 
     if info:
         updated = []
-        # Update icon if we got one
-        logger.info(f"local_icon_path: {info.get('local_icon_path')}")
-        logger.info(f"icon_url: {info.get('icon_url')}")
-        logger.info(f"app android_icon_url: {app.get('android_icon_url')}")
 
+        # Update icon if we got a local path
         if info.get('local_icon_path'):
             app['android_icon_url'] = info['local_icon_path']
             updated.append('icon')
-            logger.info(f"Updated icon to: {info['local_icon_path']}")
         elif info.get('icon_url') and not app.get('android_icon_url'):
             app['android_icon_url'] = info['icon_url']
             updated.append('icon (remote)')
-            logger.info(f"Updated icon to remote: {info['icon_url']}")
 
         # Update description if we got one and app doesn't have one (or has a shorter one)
         if info.get('description'):
             current_desc = app.get('android_description', '')
             if not current_desc or len(info['description']) > len(current_desc):
-                app['android_description'] = info['description'][:500]  # Limit to 500 chars
+                app['android_description'] = info['description'][:500]
                 updated.append('description')
 
-        logger.info(f"Updated fields: {updated}")
         if updated:
             DataManager.update_app(app_id, app)
             flash(f'Updated: {", ".join(updated)}', 'success')
         else:
             flash('No new information to update.', 'info')
     else:
-        logger.warning(f"Could not fetch info for {package_name}")
         flash(f'Could not fetch info for {package_name}. App may not be on Play Store.', 'danger')
 
     return redirect(url_for('dashboard.apps_edit', app_id=app_id))
@@ -425,9 +417,15 @@ def fetch_all_info():
             skip_count += 1
             continue
 
-        # Skip if already has both icon and description
+        # Clear old icon path if it uses the deprecated location
+        current_icon = app.get('android_icon_url', '')
+        if current_icon.startswith('/static/icons/'):
+            app['android_icon_url'] = ''
+
         has_icon = bool(app.get('android_icon_url'))
         has_desc = bool(app.get('android_description'))
+
+        # Skip if already has valid icon and description
         if has_icon and has_desc:
             skip_count += 1
             continue
