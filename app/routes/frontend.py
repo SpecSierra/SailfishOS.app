@@ -15,6 +15,37 @@ def serve_icon(filename):
     return send_from_directory(Config.ICONS_DIR, filename)
 
 
+@frontend_bp.route('/debug/icons')
+def debug_icons():
+    """Debug endpoint to check icons configuration."""
+    import os
+    icons_dir = Config.ICONS_DIR
+    data_dir = Config.DATA_DIR
+
+    result = {
+        'ICONS_DIR': icons_dir,
+        'DATA_DIR': data_dir,
+        'ICONS_DIR_exists': os.path.exists(icons_dir),
+        'DATA_DIR_exists': os.path.exists(data_dir),
+        'cwd': os.getcwd(),
+    }
+
+    if os.path.exists(icons_dir):
+        try:
+            result['icons_dir_contents'] = os.listdir(icons_dir)
+            result['icons_dir_writable'] = os.access(icons_dir, os.W_OK)
+        except Exception as e:
+            result['icons_dir_error'] = str(e)
+
+    if os.path.exists(data_dir):
+        try:
+            result['data_dir_contents'] = os.listdir(data_dir)
+        except Exception as e:
+            result['data_dir_error'] = str(e)
+
+    return result
+
+
 def verify_hcaptcha(response_token):
     """Verify hCaptcha response token."""
     if not response_token:

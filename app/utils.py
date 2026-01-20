@@ -8,20 +8,40 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from config import Config
 
+# Set up logging with DEBUG level
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Directory to store downloaded icons
 ICONS_DIR = Config.ICONS_DIR
+logger.debug(f"ICONS_DIR configured as: {ICONS_DIR}")
+logger.debug(f"ICONS_DIR exists: {os.path.exists(ICONS_DIR)}")
+logger.debug(f"DATA_DIR from config: {Config.DATA_DIR}")
 
 
 def ensure_icons_dir():
     """Ensure the icons directory exists."""
+    logger.debug(f"ensure_icons_dir called, checking: {ICONS_DIR}")
+    logger.debug(f"Directory exists: {os.path.exists(ICONS_DIR)}")
     if not os.path.exists(ICONS_DIR):
         try:
             os.makedirs(ICONS_DIR)
             logger.info(f"Created icons directory: {ICONS_DIR}")
         except Exception as e:
             logger.error(f"Failed to create icons directory {ICONS_DIR}: {e}")
+    else:
+        logger.debug(f"Icons directory already exists: {ICONS_DIR}")
+
+    # Check if directory is writable
+    if os.path.exists(ICONS_DIR):
+        test_file = os.path.join(ICONS_DIR, '.write_test')
+        try:
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            logger.debug(f"Icons directory is writable: {ICONS_DIR}")
+        except Exception as e:
+            logger.error(f"Icons directory is NOT writable: {ICONS_DIR} - {e}")
 
 
 def fetch_play_store_icon(package_name):
@@ -97,7 +117,10 @@ def download_icon(icon_url, package_name):
     Returns:
         Local path to the icon or None if failed
     """
+    logger.debug(f"download_icon called with icon_url={icon_url}, package_name={package_name}")
+
     if not icon_url or not package_name:
+        logger.warning(f"download_icon: missing icon_url or package_name")
         return None
 
     ensure_icons_dir()
@@ -111,25 +134,33 @@ def download_icon(icon_url, package_name):
 
     filename = f"{package_name.replace('.', '_')}{ext}"
     filepath = os.path.join(ICONS_DIR, filename)
+    logger.debug(f"Will save icon to: {filepath}")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     }
 
     try:
-        logger.info(f"Downloading icon for {package_name} to {filepath}")
+        logger.info(f"Downloading icon for {package_name} from {icon_url}")
         response = requests.get(icon_url, headers=headers, timeout=10)
         response.raise_for_status()
+        logger.debug(f"Got response: status={response.status_code}, content_length={len(response.content)}")
 
         with open(filepath, 'wb') as f:
             f.write(response.content)
 
-        logger.info(f"Successfully saved icon to {filepath}")
+        # Verify file was written
+        if os.path.exists(filepath):
+            file_size = os.path.getsize(filepath)
+            logger.info(f"Successfully saved icon to {filepath} (size: {file_size} bytes)")
+        else:
+            logger.error(f"File was not created: {filepath}")
+
         # Return the URL path for use in templates
         return f"/icons/{filename}"
 
     except Exception as e:
-        logger.error(f"Error downloading icon for {package_name}: {e}")
+        logger.error(f"Error downloading icon for {package_name}: {e}", exc_info=True)
         return None
 
 
@@ -247,14 +278,25 @@ def fetch_and_update_app_info(package_name):
     Returns:
         Dictionary with available info or None if failed
     """
+    logger.debug(f"fetch_and_update_app_info called for: {package_name}")
+
     info = fetch_play_store_info(package_name)
     if not info:
+        logger.warning(f"fetch_play_store_info returned None for {package_name}")
         return None
+
+    logger.debug(f"Got info from Play Store: {info.keys()}")
 
     # If we got an icon URL, try to download it
     if info.get('icon_url'):
+        logger.debug(f"Found icon_url: {info['icon_url']}")
         local_path = download_icon(info['icon_url'], package_name)
         if local_path:
             info['local_icon_path'] = local_path
+            logger.info(f"Icon saved, local_icon_path: {local_path}")
+        else:
+            logger.warning(f"download_icon returned None for {package_name}")
+    else:
+        logger.warning(f"No icon_url in info for {package_name}")
 
     return info
