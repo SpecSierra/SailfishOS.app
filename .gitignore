@@ -37,3 +37,4 @@ data/users.json
 *.log
 
 .claude/*
+.claude/
