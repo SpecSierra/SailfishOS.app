@@ -4,6 +4,10 @@ WORKDIR /code
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 
+# Port configuration (default 4000, use 3000 for dev)
+ARG PORT=4000
+ENV PORT=${PORT}
+
 # Install necessary build tools and dependencies
 RUN apk add --no-cache gcc musl-dev linux-headers
 
@@ -18,4 +22,4 @@ COPY . .
 RUN mkdir -p /code/data/icons
 
 # Command to run the application
-CMD ["gunicorn", "-b", "0.0.0.0:4000", "app:create_app()"]
+CMD gunicorn -b 0.0.0.0:${PORT} "app:create_app()"

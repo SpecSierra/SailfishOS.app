@@ -1,3 +1,4 @@
+import json
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
@@ -174,19 +175,32 @@ def apps_add():
             flash('Please complete the captcha verification.', 'danger')
             return render_template('dashboard/apps_form.html', form=form, title='Add App', reports=[], hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
 
+        # Parse additional native apps JSON
+        additional_native_apps = []
+        if form.additional_native_apps.data:
+            try:
+                additional_native_apps = json.loads(form.additional_native_apps.data)
+            except json.JSONDecodeError:
+                flash('Invalid JSON format for additional native apps.', 'warning')
+
         app_data = {
             'android_name': form.android_name.data,
             'android_package': form.android_package.data,
             'android_description': form.android_description.data,
             'android_icon_url': form.android_icon_url.data,
             'category': form.category.data,
+            'countries': form.countries.data or [],
             'native_exists': form.native_exists.data,
             'native_name': form.native_name.data,
             'native_store_url': form.native_store_url.data,
             'native_rating': int(form.native_rating.data),
+            'additional_native_apps': additional_native_apps,
             'android_support_works': form.android_support_works.data,
             'android_support_rating': int(form.android_support_rating.data),
             'android_support_notes': form.android_support_notes.data,
+            'dependency': form.dependency.data,
+            'browser_works': form.browser_works.data,
+            'browser_notes': form.browser_notes.data,
             'reports_count': 0
         }
         DataManager.add_app(app_data)
@@ -209,19 +223,32 @@ def apps_edit(app_id):
     form.category.choices = [(c['slug'], c['name']) for c in categories]
 
     if form.validate_on_submit():
+        # Parse additional native apps JSON
+        additional_native_apps = []
+        if form.additional_native_apps.data:
+            try:
+                additional_native_apps = json.loads(form.additional_native_apps.data)
+            except json.JSONDecodeError:
+                flash('Invalid JSON format for additional native apps.', 'warning')
+
         app_data = {
             'android_name': form.android_name.data,
             'android_package': form.android_package.data,
             'android_description': form.android_description.data,
             'android_icon_url': form.android_icon_url.data,
             'category': form.category.data,
+            'countries': form.countries.data or [],
             'native_exists': form.native_exists.data,
             'native_name': form.native_name.data,
             'native_store_url': form.native_store_url.data,
             'native_rating': int(form.native_rating.data),
+            'additional_native_apps': additional_native_apps,
             'android_support_works': form.android_support_works.data,
             'android_support_rating': int(form.android_support_rating.data),
             'android_support_notes': form.android_support_notes.data,
+            'dependency': form.dependency.data,
+            'browser_works': form.browser_works.data,
+            'browser_notes': form.browser_notes.data,
             'reports_count': app.get('reports_count', 0)
         }
         DataManager.update_app(app_id, app_data)
@@ -234,13 +261,20 @@ def apps_edit(app_id):
     form.android_description.data = app.get('android_description', '')
     form.android_icon_url.data = app.get('android_icon_url', '')
     form.category.data = app.get('category', '')
+    form.countries.data = app.get('countries', [])
     form.native_exists.data = app.get('native_exists', False)
     form.native_name.data = app.get('native_name', '')
     form.native_store_url.data = app.get('native_store_url', '')
     form.native_rating.data = str(app.get('native_rating', 0))
+    # Convert additional_native_apps back to JSON string for the form
+    additional_apps = app.get('additional_native_apps', [])
+    form.additional_native_apps.data = json.dumps(additional_apps, indent=2) if additional_apps else ''
     form.android_support_works.data = app.get('android_support_works', 'unknown')
     form.android_support_rating.data = str(app.get('android_support_rating', 0))
     form.android_support_notes.data = app.get('android_support_notes', '')
+    form.dependency.data = app.get('dependency', 'none')
+    form.browser_works.data = app.get('browser_works', 'unknown')
+    form.browser_notes.data = app.get('browser_notes', '')
 
     return render_template(
         'dashboard/apps_form.html',

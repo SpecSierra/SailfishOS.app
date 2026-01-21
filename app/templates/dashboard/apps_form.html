@@ -83,6 +83,15 @@
                         <small class="text-danger">{{ error }}</small>
                         {% endfor %}
                     </div>
+
+                    <div class="form-group">
+                        <label for="countries"><i class="fas fa-globe-europe"></i> Countries/Regions</label>
+                        {{ form.countries(class="form-control", size="5") }}
+                        <small class="text-muted">Hold Ctrl/Cmd to select multiple. Select "Global" for worldwide apps.</small>
+                        {% for error in form.countries.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -120,6 +129,15 @@
                         <small class="text-danger">{{ error }}</small>
                         {% endfor %}
                     </div>
+
+                    <div class="form-group">
+                        <label for="additional_native_apps"><i class="fas fa-list"></i> Additional Native Apps (JSON)</label>
+                        {{ form.additional_native_apps(class="form-control", rows=4, placeholder='[{"name": "App Name", "store_url": "https://...", "rating": 4}]') }}
+                        <small class="text-muted">JSON array of additional native alternatives. Each entry: {"name": "...", "store_url": "...", "rating": 0-5}</small>
+                        {% for error in form.additional_native_apps.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -149,6 +167,40 @@
                         <label for="android_support_notes">Notes</label>
                         {{ form.android_support_notes(class="form-control", rows=3, placeholder="Any issues, workarounds, or tips...") }}
                         {% for error in form.android_support_notes.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dependency"><i class="fas fa-cog"></i> Google Services Dependency</label>
+                        {{ form.dependency(class="form-control") }}
+                        <small class="text-muted">Does this app require microG or GApps to work?</small>
+                        {% for error in form.dependency.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Browser Compatibility -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-globe"></i> SailfishOS Browser Compatibility
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="browser_works">Browser Status</label>
+                        {{ form.browser_works(class="form-control") }}
+                        <small class="text-muted">Can users access this service via the SailfishOS web browser?</small>
+                        {% for error in form.browser_works.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="browser_notes">Browser Notes</label>
+                        {{ form.browser_notes(class="form-control", rows=2, placeholder="Any browser-specific issues or tips...") }}
+                        {% for error in form.browser_notes.errors %}
                         <small class="text-danger">{{ error }}</small>
                         {% endfor %}
                     </div>

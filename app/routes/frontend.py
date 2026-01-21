@@ -44,6 +44,7 @@ def index():
     q = request.args.get('q', '').strip().lower()
     category = request.args.get('category', '')
     status = request.args.get('status', '')
+    country = request.args.get('country', '')
 
     filtered_apps = apps
 
@@ -58,6 +59,12 @@ def index():
         filtered_apps = [
             app for app in filtered_apps
             if app.get('category') == category
+        ]
+
+    if country:
+        filtered_apps = [
+            app for app in filtered_apps
+            if country in app.get('countries', []) or 'GLOBAL' in app.get('countries', [])
         ]
 
     if status:
@@ -85,6 +92,21 @@ def index():
             filtered_apps = [
                 app for app in filtered_apps
                 if app.get('android_support_works', 'unknown') == 'unknown'
+            ]
+        elif status == 'browser':
+            filtered_apps = [
+                app for app in filtered_apps
+                if app.get('browser_works') == 'yes'
+            ]
+        elif status == 'microg':
+            filtered_apps = [
+                app for app in filtered_apps
+                if app.get('dependency') in ('microg', 'microg_or_gapps')
+            ]
+        elif status == 'gapps':
+            filtered_apps = [
+                app for app in filtered_apps
+                if app.get('dependency') in ('gapps', 'microg_or_gapps')
             ]
 
     page = request.args.get('page', 1, type=int)
@@ -160,6 +182,8 @@ def app_detail(app_id):
             'reporter_name': form.reporter_name.data or 'Anonymous',
             'android_support_works': form.android_support_works.data,
             'rating': int(form.rating.data),
+            'dependency': form.dependency.data or None,
+            'browser_works': form.browser_works.data or None,
             'device': form.device.data,
             'sailfish_version': form.sailfish_version.data,
             'app_version': form.app_version.data,
@@ -233,13 +257,18 @@ def submit_app():
             'android_description': (info.get('description', '') or '')[:500],
             'android_icon_url': info.get('local_icon_path') or info.get('icon_url', ''),
             'category': form.category.data,
+            'countries': [],
             'native_exists': False,
             'native_name': '',
             'native_store_url': '',
             'native_rating': 0,
+            'additional_native_apps': [],
             'android_support_works': 'unknown',
             'android_support_rating': 0,
             'android_support_notes': '',
+            'dependency': 'none',
+            'browser_works': 'unknown',
+            'browser_notes': '',
             'reports_count': 0
         }
 

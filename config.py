@@ -5,6 +5,10 @@ load_dotenv()
 
 
 class Config:
+    # Development mode flag
+    DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
+    PORT = int(os.environ.get('PORT', 3000 if DEV_MODE else 4000))
+
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     APP_VERSION = os.environ.get('APP_VERSION') or '0.0.1'
     DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')

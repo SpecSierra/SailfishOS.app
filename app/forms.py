@@ -1,6 +1,44 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, TextAreaField, BooleanField, IntegerField
+from wtforms import StringField, PasswordField, SelectField, TextAreaField, BooleanField, IntegerField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, EqualTo, ValidationError
+
+
+# Country list for filtering (countries where Jolla phones are sold + common regions)
+COUNTRIES = [
+    ('', 'All Countries'),
+    ('FI', 'Finland'),
+    ('NO', 'Norway'),
+    ('SE', 'Sweden'),
+    ('DE', 'Germany'),
+    ('FR', 'France'),
+    ('IT', 'Italy'),
+    ('ES', 'Spain'),
+    ('UK', 'United Kingdom'),
+    ('US', 'United States'),
+    ('RU', 'Russia'),
+    ('IN', 'India'),
+    ('CN', 'China'),
+    ('JP', 'Japan'),
+    ('AU', 'Australia'),
+    ('NL', 'Netherlands'),
+    ('PL', 'Poland'),
+    ('CH', 'Switzerland'),
+    ('AT', 'Austria'),
+    ('BE', 'Belgium'),
+    ('DK', 'Denmark'),
+    ('PT', 'Portugal'),
+    ('CZ', 'Czech Republic'),
+    ('HU', 'Hungary'),
+    ('GLOBAL', 'Global / Worldwide'),
+]
+
+# Dependency options for microG/GApps
+DEPENDENCY_CHOICES = [
+    ('none', 'No special requirements'),
+    ('microg', 'Requires microG'),
+    ('gapps', 'Requires Open GApps'),
+    ('microg_or_gapps', 'Requires microG or GApps'),
+]
 
 
 class LoginForm(FlaskForm):
@@ -17,6 +55,10 @@ class AppForm(FlaskForm):
 
     category = SelectField('Category', validators=[DataRequired()])
 
+    # Country/region (multi-select)
+    countries = SelectMultipleField('Countries/Regions', choices=COUNTRIES[1:], validators=[Optional()])
+
+    # Multiple native apps support (JSON text area for flexibility)
     native_exists = BooleanField('Native App Exists')
     native_name = StringField('Native App Name', validators=[Optional(), Length(max=100)])
     native_store_url = StringField('Store URL', validators=[Optional(), Length(max=500)])
@@ -28,6 +70,8 @@ class AppForm(FlaskForm):
         ('4', '4 - Very Good'),
         ('5', '5 - Excellent')
     ], default='0')
+    # Additional native apps (JSON format for multiple entries)
+    additional_native_apps = TextAreaField('Additional Native Apps (JSON)', validators=[Optional(), Length(max=2000)])
 
     android_support_works = SelectField('Android App Support', choices=[
         ('unknown', 'Unknown'),
@@ -45,6 +89,19 @@ class AppForm(FlaskForm):
     ], default='0')
     android_support_notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
 
+    # microG/GApps dependency
+    dependency = SelectField('Google Services Dependency', choices=DEPENDENCY_CHOICES, default='none')
+
+    # Browser compatibility
+    browser_works = SelectField('Works in SailfishOS Browser', choices=[
+        ('unknown', 'Unknown'),
+        ('yes', 'Yes, works in browser'),
+        ('partial', 'Partially works'),
+        ('no', 'Does not work in browser'),
+        ('na', 'Not applicable (no web version)')
+    ], default='unknown')
+    browser_notes = TextAreaField('Browser Notes', validators=[Optional(), Length(max=500)])
+
 
 class SearchForm(FlaskForm):
     q = StringField('Search', validators=[Optional(), Length(max=100)])
@@ -55,8 +112,12 @@ class SearchForm(FlaskForm):
         ('works', 'Android Support Works'),
         ('partial', 'Partial Support'),
         ('no', 'Does Not Work'),
-        ('unknown', 'Unknown')
+        ('unknown', 'Unknown'),
+        ('browser', 'Works in Browser'),
+        ('microg', 'Requires microG'),
+        ('gapps', 'Requires GApps'),
     ], default='')
+    country = SelectField('Country/Region', choices=COUNTRIES, default='')
 
 
 class CategoryForm(FlaskForm):
@@ -85,6 +146,24 @@ class ReportForm(FlaskForm):
         ('4', '4 - Good'),
         ('5', '5 - Perfect')
     ], validators=[DataRequired(message='Please select a rating')])
+
+    # microG/GApps dependency
+    dependency = SelectField('Google Services Required?', choices=[
+        ('', '-- Select --'),
+        ('none', 'No - works without Google Services'),
+        ('microg', 'Requires microG'),
+        ('gapps', 'Requires Open GApps'),
+        ('microg_or_gapps', 'Requires microG or GApps'),
+    ], validators=[Optional()])
+
+    # Browser compatibility
+    browser_works = SelectField('Works in SailfishOS Browser?', choices=[
+        ('', '-- Select --'),
+        ('yes', 'Yes, web version works'),
+        ('partial', 'Partially works in browser'),
+        ('no', 'Does not work in browser'),
+        ('na', 'Not applicable / No web version'),
+    ], validators=[Optional()])
 
     device = StringField('Device Model', validators=[Optional(), Length(max=100)])
     sailfish_version = StringField('SailfishOS Version', validators=[Optional(), Length(max=50)])

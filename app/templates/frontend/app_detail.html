@@ -56,11 +56,12 @@
                 <!-- Native App Section -->
                 <div class="card mb-3 {% if app.native_exists %}border-info{% else %}border-secondary{% endif %}">
                     <div class="card-header {% if app.native_exists %}bg-info text-white{% else %}bg-light{% endif %}">
-                        <i class="fas fa-mobile-alt"></i> Native App
+                        <i class="fas fa-mobile-alt"></i> Native App{% if app.additional_native_apps %}s{% endif %}
                     </div>
                     <div class="card-body">
                         {% if app.native_exists %}
-                        <div class="d-flex justify-content-between align-items-center">
+                        <!-- Primary native app -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
                             <div>
                                 <h5 class="mb-1">{{ app.native_name }}</h5>
                                 {% if app.native_store_url %}
@@ -84,6 +85,34 @@
                                 {% endif %}
                             </div>
                         </div>
+                        <!-- Additional native apps -->
+                        {% if app.additional_native_apps %}
+                        <hr>
+                        <p class="text-muted small mb-2"><i class="fas fa-list"></i> Other native alternatives:</p>
+                        {% for native_app in app.additional_native_apps %}
+                        <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}">
+                            <div>
+                                <strong>{{ native_app.name }}</strong>
+                                {% if native_app.store_url %}
+                                <a href="{{ native_app.store_url }}" target="_blank" rel="noopener" class="ml-2 small">
+                                    <i class="fas fa-external-link-alt"></i> Store
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if native_app.rating and native_app.rating > 0 %}
+                            <div class="rating" role="img" aria-label="Rating: {{ native_app.rating }} out of 5 stars">
+                                {% for i in range(5) %}
+                                    {% if i < native_app.rating %}
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    {% else %}
+                                    <i class="fas fa-star empty" aria-hidden="true"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% endif %}
                         {% else %}
                         <p class="text-muted mb-0">
                             <i class="fas fa-info-circle"></i> No native SailfishOS app available
@@ -148,6 +177,66 @@
                             <p class="mb-0 mt-2">{{ app.android_support_notes }}</p>
                         </div>
                         {% endif %}
+
+                        <!-- Dependency Info -->
+                        {% if app.dependency and app.dependency != 'none' %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Requires:</strong>
+                            {% if app.dependency == 'microg' %}
+                            microG for Google Services
+                            {% elif app.dependency == 'gapps' %}
+                            Open GApps
+                            {% elif app.dependency == 'microg_or_gapps' %}
+                            microG or Open GApps
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Browser Compatibility Section -->
+                <div class="card mb-3 {% if app.browser_works == 'yes' %}border-info{% elif app.browser_works == 'partial' %}border-warning{% elif app.browser_works == 'no' %}border-danger{% else %}border-secondary{% endif %}">
+                    <div class="card-header {% if app.browser_works == 'yes' %}bg-info text-white{% elif app.browser_works == 'partial' %}bg-warning{% elif app.browser_works == 'no' %}bg-danger text-white{% else %}bg-light{% endif %}">
+                        <i class="fas fa-globe"></i> SailfishOS Browser
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                {% if app.browser_works == 'yes' %}
+                                <span class="badge badge-works badge-lg">
+                                    <i class="fas fa-check" aria-hidden="true"></i> Works in Browser
+                                </span>
+                                <p class="text-muted small mt-2 mb-0">This app/service can be used via the SailfishOS web browser</p>
+                                {% elif app.browser_works == 'partial' %}
+                                <span class="badge badge-partial badge-lg">
+                                    <i class="fas fa-exclamation" aria-hidden="true"></i> Partially Works
+                                </span>
+                                <p class="text-muted small mt-2 mb-0">Some features work in the browser</p>
+                                {% elif app.browser_works == 'no' %}
+                                <span class="badge badge-no badge-lg">
+                                    <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
+                                </span>
+                                <p class="text-muted small mt-2 mb-0">The web version does not work in SailfishOS browser</p>
+                                {% elif app.browser_works == 'na' %}
+                                <span class="badge badge-secondary badge-lg">
+                                    <i class="fas fa-minus" aria-hidden="true"></i> Not Applicable
+                                </span>
+                                <p class="text-muted small mt-2 mb-0">This app does not have a web version</p>
+                                {% else %}
+                                <span class="badge badge-unknown badge-lg">
+                                    <i class="fas fa-question" aria-hidden="true"></i> Unknown
+                                </span>
+                                <p class="text-muted small mt-2 mb-0">Browser compatibility has not been tested yet</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if app.browser_notes %}
+                        <div class="alert alert-secondary mt-3 mb-0">
+                            <strong><i class="fas fa-sticky-note"></i> Browser Notes:</strong>
+                            <p class="mb-0 mt-2">{{ app.browser_notes }}</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -199,6 +288,24 @@
                             {% if report.app_version %}<span><i class="fab fa-android" aria-hidden="true"></i> v{{ report.app_version }}</span>{% endif %}
                         </div>
                         {% endif %}
+
+                        <!-- Show dependency and browser info from report -->
+                        <div class="mt-1">
+                            {% if report.dependency and report.dependency != 'none' %}
+                            <span class="badge badge-warning mr-1">
+                                <i class="fas fa-cog" aria-hidden="true"></i>
+                                {% if report.dependency == 'microg' %}microG
+                                {% elif report.dependency == 'gapps' %}GApps
+                                {% elif report.dependency == 'microg_or_gapps' %}microG/GApps{% endif %}
+                            </span>
+                            {% endif %}
+                            {% if report.browser_works %}
+                            <span class="badge {% if report.browser_works == 'yes' %}badge-info{% elif report.browser_works == 'partial' %}badge-warning{% elif report.browser_works == 'no' %}badge-secondary{% else %}badge-light{% endif %}">
+                                <i class="fas fa-globe" aria-hidden="true"></i>
+                                Browser: {% if report.browser_works == 'yes' %}Works{% elif report.browser_works == 'partial' %}Partial{% elif report.browser_works == 'no' %}No{% elif report.browser_works == 'na' %}N/A{% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
 
                         {% if report.notes %}
                         <p class="mt-2 mb-0">{{ report.notes }}</p>
@@ -264,6 +371,23 @@
                     <div class="form-group">
                         <label for="app_version"><i class="fab fa-android"></i> App Version (optional)</label>
                         {{ form.app_version(class="form-control", placeholder="e.g., 2.23.10") }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="dependency"><i class="fas fa-cog"></i> Google Services Required?</label>
+                                {{ form.dependency(class="form-control") }}
+                                <small class="text-muted">Does this app need microG or GApps to work?</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="browser_works"><i class="fas fa-globe"></i> Works in Browser?</label>
+                                {{ form.browser_works(class="form-control") }}
+                                <small class="text-muted">Can you use the web version in SailfishOS browser?</small>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
