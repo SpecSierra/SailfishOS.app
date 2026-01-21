@@ -98,60 +98,29 @@
             <!-- Native App Info -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-ship"></i> Native SailfishOS App
+                    <i class="fas fa-ship"></i> Native SailfishOS Apps
                 </div>
                 <div class="card-body">
-                    <div class="form-group form-check">
-                        {{ form.native_exists(class="form-check-input") }}
-                        <label class="form-check-label" for="native_exists">Native app exists</label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="native_name">Native App Name</label>
-                        {{ form.native_name(class="form-control") }}
-                        {% for error in form.native_name.errors %}
-                        <small class="text-danger">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="native_store_url">Store URL</label>
-                        {{ form.native_store_url(class="form-control", placeholder="https://openrepos.net/...") }}
-                        {% for error in form.native_store_url.errors %}
-                        <small class="text-danger">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="native_rating">Rating</label>
-                        {{ form.native_rating(class="form-control") }}
-                        {% for error in form.native_rating.errors %}
-                        <small class="text-danger">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fas fa-list"></i> Additional Native Apps</label>
-                        <input type="hidden" name="additional_native_apps" id="additional_native_apps_json" value="{{ form.additional_native_apps.data or '[]' }}">
-                        <table class="table table-sm table-bordered" id="nativeAppsTable">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Store URL</th>
-                                    <th style="width: 80px;">Rating</th>
-                                    <th style="width: 50px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="nativeAppsBody">
-                            </tbody>
-                        </table>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="addNativeAppBtn">
-                            <i class="fas fa-plus"></i> Add Native App
-                        </button>
-                        {% for error in form.additional_native_apps.errors %}
-                        <small class="text-danger d-block">{{ error }}</small>
-                        {% endfor %}
-                    </div>
+                    <input type="hidden" name="additional_native_apps" id="additional_native_apps_json" value="{{ form.additional_native_apps.data or '[]' }}">
+                    <table class="table table-sm table-bordered" id="nativeAppsTable">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Store URL</th>
+                                <th style="width: 80px;">Rating</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="nativeAppsBody">
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addNativeAppBtn">
+                        <i class="fas fa-plus"></i> Add Native App
+                    </button>
+                    <small class="text-muted d-block mt-2">Add any native SailfishOS alternatives to this Android app.</small>
+                    {% for error in form.additional_native_apps.errors %}
+                    <small class="text-danger d-block">{{ error }}</small>
+                    {% endfor %}
                 </div>
             </div>
 

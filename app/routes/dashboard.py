@@ -183,6 +183,10 @@ def apps_add():
             except json.JSONDecodeError:
                 flash('Invalid JSON format for additional native apps.', 'warning')
 
+        # Derive primary native app from first entry in additional_native_apps
+        native_exists = len(additional_native_apps) > 0
+        first_native = additional_native_apps[0] if native_exists else {}
+
         app_data = {
             'android_name': form.android_name.data,
             'android_package': form.android_package.data,
@@ -190,11 +194,11 @@ def apps_add():
             'android_icon_url': form.android_icon_url.data,
             'category': form.category.data,
             'countries': form.countries.data or [],
-            'native_exists': form.native_exists.data,
-            'native_name': form.native_name.data,
-            'native_store_url': form.native_store_url.data,
-            'native_rating': int(form.native_rating.data),
-            'additional_native_apps': additional_native_apps,
+            'native_exists': native_exists,
+            'native_name': first_native.get('name', ''),
+            'native_store_url': first_native.get('store_url', ''),
+            'native_rating': int(first_native.get('rating', 0)),
+            'additional_native_apps': additional_native_apps[1:] if len(additional_native_apps) > 1 else [],
             'android_support_works': form.android_support_works.data,
             'android_support_rating': int(form.android_support_rating.data),
             'android_support_notes': form.android_support_notes.data,
@@ -231,6 +235,10 @@ def apps_edit(app_id):
             except json.JSONDecodeError:
                 flash('Invalid JSON format for additional native apps.', 'warning')
 
+        # Derive primary native app from first entry in additional_native_apps
+        native_exists = len(additional_native_apps) > 0
+        first_native = additional_native_apps[0] if native_exists else {}
+
         app_data = {
             'android_name': form.android_name.data,
             'android_package': form.android_package.data,
@@ -238,11 +246,11 @@ def apps_edit(app_id):
             'android_icon_url': form.android_icon_url.data,
             'category': form.category.data,
             'countries': form.countries.data or [],
-            'native_exists': form.native_exists.data,
-            'native_name': form.native_name.data,
-            'native_store_url': form.native_store_url.data,
-            'native_rating': int(form.native_rating.data),
-            'additional_native_apps': additional_native_apps,
+            'native_exists': native_exists,
+            'native_name': first_native.get('name', ''),
+            'native_store_url': first_native.get('store_url', ''),
+            'native_rating': int(first_native.get('rating', 0)),
+            'additional_native_apps': additional_native_apps[1:] if len(additional_native_apps) > 1 else [],
             'android_support_works': form.android_support_works.data,
             'android_support_rating': int(form.android_support_rating.data),
             'android_support_notes': form.android_support_notes.data,
@@ -262,13 +270,18 @@ def apps_edit(app_id):
     form.android_icon_url.data = app.get('android_icon_url', '')
     form.category.data = app.get('category', '')
     form.countries.data = app.get('countries', [])
-    form.native_exists.data = app.get('native_exists', False)
-    form.native_name.data = app.get('native_name', '')
-    form.native_store_url.data = app.get('native_store_url', '')
-    form.native_rating.data = str(app.get('native_rating', 0))
-    # Convert additional_native_apps back to JSON string for the form
-    additional_apps = app.get('additional_native_apps', [])
-    form.additional_native_apps.data = json.dumps(additional_apps, indent=2) if additional_apps else ''
+
+    # Merge primary native app with additional_native_apps for the form
+    all_native_apps = []
+    if app.get('native_exists') and app.get('native_name'):
+        all_native_apps.append({
+            'name': app.get('native_name', ''),
+            'store_url': app.get('native_store_url', ''),
+            'rating': app.get('native_rating', 0)
+        })
+    all_native_apps.extend(app.get('additional_native_apps', []))
+    form.additional_native_apps.data = json.dumps(all_native_apps) if all_native_apps else '[]'
+
     form.android_support_works.data = app.get('android_support_works', 'unknown')
     form.android_support_rating.data = str(app.get('android_support_rating', 0))
     form.android_support_notes.data = app.get('android_support_notes', '')
