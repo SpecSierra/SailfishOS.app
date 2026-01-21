@@ -123,24 +123,14 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer mt-auto py-4 bg-dark text-light">
+    <footer class="footer mt-auto py-3 bg-dark text-light">
         <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5><i class="fas fa-ship"></i> SailfishOS.app</h5>
-                    <p class="text-muted">Community-driven app compatibility database for SailfishOS</p>
-                </div>
-                <div class="col-md-6 text-md-right">
-                    <p class="text-muted mb-1">
-                        Like <a href="https://www.protondb.com/" target="_blank" rel="noopener">ProtonDB</a> but for SailfishOS
-                    </p>
-                    <p class="text-muted small">
-                        Data is crowdsourced from the community
-                    </p>
-                    <p class="text-muted small mb-0">
-                        Version {{ app_version }}
-                    </p>
-                </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <span class="text-muted"><i class="fas fa-ship"></i> SailfishOS.app &mdash; Like <a href="https://www.protondb.com/" target="_blank" rel="noopener">ProtonDB</a> but for SailfishOS</span>
+                <span class="text-muted">
+                    <a href="https://github.com/SpecSierra/SailfishOS.app" target="_blank" rel="noopener" class="mr-3"><i class="fab fa-github"></i> GitHub</a>
+                    v{{ app_version }}
+                </span>
             </div>
         </div>
     </footer>
