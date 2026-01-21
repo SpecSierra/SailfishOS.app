@@ -1,4 +1,6 @@
 # Development docker-compose - uses Flask dev server on port 3000 with hot reload
+name: sailfishos-dev
+
 services:
   web:
     image: sailfishos-app:dev
@@ -10,7 +12,7 @@ services:
       - "127.0.0.1:3000:3000"
     volumes:
       - ./data:/code/data
-      - ./app:/code/app        # Mount app code for hot reload
+      - ./app:/code/app
       - ./config.py:/code/config.py
       - ./run.py:/code/run.py
     env_file:
