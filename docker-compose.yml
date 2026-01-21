@@ -1,15 +1,15 @@
+# Production docker-compose - uses gunicorn on port 4000
 services:
   web:
     build:
       context: .
-      args:
-        - PORT=${PORT:-4000}
+      dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:${PORT:-4000}:${PORT:-4000}"
+      - "127.0.0.1:4000:4000"
     volumes:
       - ./data:/code/data
     env_file:
       - .env
     environment:
-      - DEV_MODE=${DEV_MODE:-false}
-      - PORT=${PORT:-4000}
+      - DEV_MODE=false
+    restart: unless-stopped

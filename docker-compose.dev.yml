@@ -1,0 +1,19 @@
+# Development docker-compose - uses Flask dev server on port 3000 with hot reload
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/code/data
+      - ./app:/code/app        # Mount app code for hot reload
+      - ./config.py:/code/config.py
+      - ./run.py:/code/run.py
+    env_file:
+      - .env
+    environment:
+      - DEV_MODE=true
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
