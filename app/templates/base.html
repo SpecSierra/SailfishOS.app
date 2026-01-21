@@ -59,6 +59,11 @@
                             <i class="fas fa-book"></i> Wiki
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://forum.sailfishos.org/" target="_blank" rel="noopener">
+                            <i class="fas fa-comments"></i> Forum
+                        </a>
+                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard.index') }}">
