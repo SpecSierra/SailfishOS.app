@@ -319,15 +319,19 @@ main {
 
 /* Footer */
 .footer {
-    background-color: var(--dark) !important;
+    background-color: var(--primary) !important;
 }
 
 .footer a {
-    color: #57c5b6;
+    color: #e8f6f3;
 }
 
 .footer a:hover {
-    color: #e8f6f3;
+    color: #fff;
+}
+
+.footer .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* Dashboard sidebar */
