@@ -1,6 +1,8 @@
 # Development docker-compose - uses Flask dev server on port 3000 with hot reload
 services:
   web:
+    image: sailfishos-app:dev
+    container_name: sailfishos-dev
     build:
       context: .
       dockerfile: Dockerfile.dev

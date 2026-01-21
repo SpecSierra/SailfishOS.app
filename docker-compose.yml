@@ -1,6 +1,8 @@
 # Production docker-compose - uses gunicorn on port 4000
 services:
   web:
+    image: sailfishos-app:prod
+    container_name: sailfishos-prod
     build:
       context: .
       dockerfile: Dockerfile
