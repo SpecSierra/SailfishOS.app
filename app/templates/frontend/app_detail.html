@@ -54,47 +54,26 @@
                 <h3 class="h5 mb-3"><i class="fas fa-ship text-primary"></i> SailfishOS Compatibility</h3>
 
                 <!-- Native App Section -->
-                <div class="card mb-3 {% if app.native_exists %}border-info{% else %}border-secondary{% endif %}">
-                    <div class="card-header {% if app.native_exists %}bg-info text-white{% else %}bg-light{% endif %}">
-                        <i class="fas fa-mobile-alt"></i> Native App{% if app.additional_native_apps %}s{% endif %}
+                {% set all_native_apps = [] %}
+                {% if app.native_exists and app.native_name %}
+                    {% set _ = all_native_apps.append({'name': app.native_name, 'store_url': app.native_store_url, 'rating': app.native_rating}) %}
+                {% endif %}
+                {% for native_app in app.additional_native_apps %}
+                    {% set _ = all_native_apps.append(native_app) %}
+                {% endfor %}
+
+                <div class="card mb-3 {% if all_native_apps %}border-info{% else %}border-secondary{% endif %}">
+                    <div class="card-header {% if all_native_apps %}bg-info text-white{% else %}bg-light{% endif %}">
+                        <i class="fas fa-mobile-alt"></i> Native App{% if all_native_apps|length > 1 %}s{% endif %}
                     </div>
                     <div class="card-body">
-                        {% if app.native_exists %}
-                        <!-- Primary native app -->
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <h5 class="mb-1">{{ app.native_name }}</h5>
-                                {% if app.native_store_url %}
-                                <a href="{{ app.native_store_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt"></i> View in Store
-                                </a>
-                                {% endif %}
-                            </div>
-                            <div class="text-right">
-                                {% if app.native_rating > 0 %}
-                                <div class="rating rating-lg" role="img" aria-label="Rating: {{ app.native_rating }} out of 5 stars">
-                                    {% for i in range(5) %}
-                                        {% if i < app.native_rating %}
-                                        <i class="fas fa-star" aria-hidden="true"></i>
-                                        {% else %}
-                                        <i class="fas fa-star empty" aria-hidden="true"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                <small class="text-muted">{{ app.native_rating }}/5</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <!-- Additional native apps -->
-                        {% if app.additional_native_apps %}
-                        <hr>
-                        <p class="text-muted small mb-2"><i class="fas fa-list"></i> Other native alternatives:</p>
-                        {% for native_app in app.additional_native_apps %}
+                        {% if all_native_apps %}
+                        {% for native_app in all_native_apps %}
                         <div class="d-flex justify-content-between align-items-center py-2 {% if not loop.last %}border-bottom{% endif %}">
                             <div>
                                 <strong>{{ native_app.name }}</strong>
                                 {% if native_app.store_url %}
-                                <a href="{{ native_app.store_url }}" target="_blank" rel="noopener" class="ml-2 small">
+                                <a href="{{ native_app.store_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary ml-2">
                                     <i class="fas fa-external-link-alt"></i> Store
                                 </a>
                                 {% endif %}
@@ -112,7 +91,6 @@
                             {% endif %}
                         </div>
                         {% endfor %}
-                        {% endif %}
                         {% else %}
                         <p class="text-muted mb-0">
                             <i class="fas fa-info-circle"></i> No native SailfishOS app available

@@ -142,6 +142,58 @@ def fetch_and_save_icon(package_name):
     return local_path, icon_url
 
 
+def is_changelog_text(text):
+    """
+    Check if text looks like a changelog/update notes rather than app description.
+
+    Args:
+        text: The text to check
+
+    Returns:
+        True if it looks like changelog, False otherwise
+    """
+    if not text:
+        return False
+
+    text_lower = text.lower()
+
+    # Common changelog indicators
+    changelog_patterns = [
+        r'^v?\d+\.\d+',  # Starts with version number like "1.0" or "v1.0"
+        r'^\*\s',  # Starts with bullet point
+        r'^-\s',  # Starts with dash list
+        r'^what\'s new',
+        r'^new in this',
+        r'^changelog',
+        r'^release notes',
+        r'^update:',
+        r'^version \d',
+    ]
+
+    for pattern in changelog_patterns:
+        if re.match(pattern, text_lower):
+            return True
+
+    # Check for changelog keywords that are typically not in descriptions
+    changelog_keywords = [
+        'bug fix', 'bugfix', 'fixed a bug', 'fixes bug',
+        'minor improvements', 'performance improvements',
+        'stability improvements', 'crash fix',
+        'this update', 'this version', 'in this release',
+        'we\'ve fixed', 'we\'ve updated', 'we\'ve improved',
+        'thanks for using', 'thanks for your feedback',
+        'keep your app updated', 'update regularly',
+    ]
+
+    # If text is short and contains changelog keywords, it's likely changelog
+    if len(text) < 500:
+        for keyword in changelog_keywords:
+            if keyword in text_lower:
+                return True
+
+    return False
+
+
 def fetch_play_store_info(package_name):
     """
     Fetch app info (description, icon, name) from Google Play Store.
@@ -169,6 +221,7 @@ def fetch_play_store_info(package_name):
 
         soup = BeautifulSoup(response.text, 'html.parser')
         result = {}
+        candidate_descriptions = []
 
         # Get app name from og:title or title tag
         og_title = soup.find('meta', property='og:title')
@@ -181,25 +234,41 @@ def fetch_play_store_info(package_name):
                 name = name.replace(' - Google Play', '')
             result['name'] = name.strip()
 
-        # Get description from og:description meta tag
+        # Collect all potential descriptions
+        # 1. og:description meta tag
         og_desc = soup.find('meta', property='og:description')
         if og_desc and og_desc.get('content'):
-            result['description'] = og_desc['content'].strip()
+            candidate_descriptions.append(og_desc['content'].strip())
 
-        # Also try to get the full description from the page
-        # Look for the description div (usually has itemprop="description")
+        # 2. meta name="description"
+        meta_desc = soup.find('meta', {'name': 'description'})
+        if meta_desc and meta_desc.get('content'):
+            candidate_descriptions.append(meta_desc['content'].strip())
+
+        # 3. div with itemprop="description"
         desc_div = soup.find('div', {'itemprop': 'description'})
         if desc_div:
-            # Get text content, clean it up
             full_desc = desc_div.get_text(separator=' ', strip=True)
-            if full_desc and len(full_desc) > len(result.get('description', '')):
-                result['description'] = full_desc
+            if full_desc:
+                candidate_descriptions.append(full_desc)
 
-        # Alternative: Look for meta name="description"
-        if 'description' not in result:
-            meta_desc = soup.find('meta', {'name': 'description'})
-            if meta_desc and meta_desc.get('content'):
-                result['description'] = meta_desc['content'].strip()
+        # 4. Look for data-g-id="description" attribute (modern Play Store)
+        desc_section = soup.find(attrs={'data-g-id': 'description'})
+        if desc_section:
+            full_desc = desc_section.get_text(separator=' ', strip=True)
+            if full_desc:
+                candidate_descriptions.append(full_desc)
+
+        # Filter out changelog texts and pick the best description
+        valid_descriptions = [d for d in candidate_descriptions if not is_changelog_text(d)]
+
+        # If all descriptions look like changelogs, use the longest one anyway
+        if not valid_descriptions and candidate_descriptions:
+            valid_descriptions = candidate_descriptions
+
+        # Pick the longest valid description (usually more complete)
+        if valid_descriptions:
+            result['description'] = max(valid_descriptions, key=len)
 
         # Get icon URL
         og_image = soup.find('meta', property='og:image')
