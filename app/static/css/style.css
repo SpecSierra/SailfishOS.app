@@ -334,6 +334,10 @@ main {
     color: rgba(255, 255, 255, 0.8) !important;
 }
 
+[data-theme="dark"] .footer {
+    background-color: #0a2647 !important;
+}
+
 /* Dashboard sidebar */
 .dashboard-sidebar {
     background-color: var(--dark);
