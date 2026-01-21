@@ -468,6 +468,9 @@ def fetch_all_info():
     fail_count = 0
     skip_count = 0
 
+    # Check if this is a full refresh (force overwrite)
+    force_refresh = request.form.get('force') == '1'
+
     for app in apps:
         package_name = app.get('android_package')
         if not package_name:
@@ -482,8 +485,8 @@ def fetch_all_info():
         has_icon = bool(app.get('android_icon_url'))
         has_desc = bool(app.get('android_description'))
 
-        # Skip if already has valid icon and description
-        if has_icon and has_desc:
+        # Skip if already has valid icon and description (unless force refresh)
+        if not force_refresh and has_icon and has_desc:
             skip_count += 1
             continue
 
@@ -491,21 +494,28 @@ def fetch_all_info():
 
         if info:
             updated = False
-            # Update icon if missing
-            if not has_icon:
-                if info.get('local_icon_path'):
+
+            # Update icon
+            if info.get('local_icon_path'):
+                if force_refresh or not has_icon:
                     app['android_icon_url'] = info['local_icon_path']
                     updated = True
-                elif info.get('icon_url'):
+            elif info.get('icon_url'):
+                if force_refresh or not has_icon:
                     app['android_icon_url'] = info['icon_url']
                     updated = True
 
-            # Update description if missing or shorter
+            # Update description
             if info.get('description'):
                 current_desc = app.get('android_description', '')
-                if not current_desc or len(info['description']) > len(current_desc):
+                if force_refresh or not current_desc or len(info['description']) > len(current_desc):
                     app['android_description'] = info['description'][:500]
                     updated = True
+
+            # Update name if force refresh
+            if force_refresh and info.get('name'):
+                app['android_name'] = info['name']
+                updated = True
 
             if updated:
                 DataManager.update_app(app['id'], app)
