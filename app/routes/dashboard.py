@@ -413,6 +413,9 @@ def fetch_app_info(app_id):
         flash('No package name set for this app. Cannot fetch info.', 'warning')
         return redirect(url_for('dashboard.apps_edit', app_id=app_id))
 
+    # Check if this is a full refresh (force overwrite)
+    force_refresh = request.form.get('force') == '1'
+
     # Clear old icon path if it uses the deprecated location
     current_icon = app.get('android_icon_url', '')
     if current_icon.startswith('/static/icons/'):
@@ -425,18 +428,25 @@ def fetch_app_info(app_id):
 
         # Update icon if we got a local path
         if info.get('local_icon_path'):
-            app['android_icon_url'] = info['local_icon_path']
-            updated.append('icon')
-        elif info.get('icon_url') and not app.get('android_icon_url'):
-            app['android_icon_url'] = info['icon_url']
-            updated.append('icon (remote)')
+            if force_refresh or not app.get('android_icon_url'):
+                app['android_icon_url'] = info['local_icon_path']
+                updated.append('icon')
+        elif info.get('icon_url'):
+            if force_refresh or not app.get('android_icon_url'):
+                app['android_icon_url'] = info['icon_url']
+                updated.append('icon (remote)')
 
-        # Update description if we got one and app doesn't have one (or has a shorter one)
+        # Update description
         if info.get('description'):
             current_desc = app.get('android_description', '')
-            if not current_desc or len(info['description']) > len(current_desc):
+            if force_refresh or not current_desc or len(info['description']) > len(current_desc):
                 app['android_description'] = info['description'][:500]
                 updated.append('description')
+
+        # Update name if force refresh
+        if force_refresh and info.get('name'):
+            app['android_name'] = info['name']
+            updated.append('name')
 
         if updated:
             DataManager.update_app(app_id, app)

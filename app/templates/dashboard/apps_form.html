@@ -59,8 +59,11 @@
                             {{ form.android_icon_url(class="form-control", placeholder="https://...") }}
                             {% if app and app.android_package %}
                             <div class="input-group-append">
-                                <button type="button" class="btn btn-outline-info" id="fetchIconBtn" title="Fetch icon and description from Play Store">
+                                <button type="button" class="btn btn-outline-info" id="fetchIconBtn" title="Fetch missing info from Play Store">
                                     <i class="fas fa-cloud-download-alt" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" id="fullRefreshBtn" title="Full refresh from Play Store (overwrites existing data)">
+                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
                                 </button>
                             </div>
                             {% endif %}
@@ -73,6 +76,12 @@
                             <img src="{{ app.android_icon_url }}" alt="Current icon" style="width: 48px; height: 48px; border-radius: 8px;">
                             <small class="text-muted ml-2">Current icon</small>
                         </div>
+                        {% endif %}
+                        {% if app and app.android_package %}
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-cloud-download-alt"></i> fills missing fields |
+                            <i class="fas fa-sync-alt"></i> overwrites all fields
+                        </small>
                         {% endif %}
                     </div>
 
@@ -295,7 +304,7 @@
         });
     }
 
-    // Fetch info button (icon + description)
+    // Fetch info button (icon + description) - smart update
     var fetchIconBtn = document.getElementById('fetchIconBtn');
     if (fetchIconBtn) {
         fetchIconBtn.addEventListener('click', function() {
@@ -314,6 +323,41 @@
 
             fetchIconBtn.disabled = true;
             fetchIconBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+
+            form.submit();
+            {% endif %}
+        });
+    }
+
+    // Full refresh button - overwrites existing data
+    var fullRefreshBtn = document.getElementById('fullRefreshBtn');
+    if (fullRefreshBtn) {
+        fullRefreshBtn.addEventListener('click', function() {
+            {% if app %}
+            if (!confirm('This will overwrite the current name, description, and icon with data from the Play Store. Continue?')) {
+                return;
+            }
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("dashboard.fetch_app_info", app_id=app.id) }}';
+
+            var csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            form.appendChild(csrfInput);
+
+            var forceInput = document.createElement('input');
+            forceInput.type = 'hidden';
+            forceInput.name = 'force';
+            forceInput.value = '1';
+            form.appendChild(forceInput);
+
+            document.body.appendChild(form);
+
+            fullRefreshBtn.disabled = true;
+            fullRefreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
 
             form.submit();
             {% endif %}
