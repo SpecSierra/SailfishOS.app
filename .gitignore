@@ -30,9 +30,9 @@ instance/
 *.env
 
 # Data (keep structure, ignore sensitive data)
-data/icons/*
-!data/icons/.gitkeep
-data/users.json
+data/
+data/*
+
 
 # Logs
 *.log
