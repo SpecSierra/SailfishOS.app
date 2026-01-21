@@ -131,11 +131,25 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="additional_native_apps"><i class="fas fa-list"></i> Additional Native Apps (JSON)</label>
-                        {{ form.additional_native_apps(class="form-control", rows=4, placeholder='[{"name": "App Name", "store_url": "https://...", "rating": 4}]') }}
-                        <small class="text-muted">JSON array of additional native alternatives. Each entry: {"name": "...", "store_url": "...", "rating": 0-5}</small>
+                        <label><i class="fas fa-list"></i> Additional Native Apps</label>
+                        <input type="hidden" name="additional_native_apps" id="additional_native_apps_json" value="{{ form.additional_native_apps.data or '[]' }}">
+                        <table class="table table-sm table-bordered" id="nativeAppsTable">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Store URL</th>
+                                    <th style="width: 80px;">Rating</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="nativeAppsBody">
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addNativeAppBtn">
+                            <i class="fas fa-plus"></i> Add Native App
+                        </button>
                         {% for error in form.additional_native_apps.errors %}
-                        <small class="text-danger">{{ error }}</small>
+                        <small class="text-danger d-block">{{ error }}</small>
                         {% endfor %}
                     </div>
                 </div>
@@ -336,6 +350,73 @@
             {% endif %}
         });
     }
+
+    // Additional Native Apps table management
+    var nativeAppsBody = document.getElementById('nativeAppsBody');
+    var nativeAppsJson = document.getElementById('additional_native_apps_json');
+    var addBtn = document.getElementById('addNativeAppBtn');
+
+    function createRow(app) {
+        app = app || { name: '', store_url: '', rating: 0 };
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><input type="text" class="form-control form-control-sm native-name" value="' + (app.name || '') + '" placeholder="App name"></td>' +
+            '<td><input type="text" class="form-control form-control-sm native-url" value="' + (app.store_url || '') + '" placeholder="https://..."></td>' +
+            '<td><select class="form-control form-control-sm native-rating">' +
+            '<option value="0"' + (app.rating == 0 ? ' selected' : '') + '>0</option>' +
+            '<option value="1"' + (app.rating == 1 ? ' selected' : '') + '>1</option>' +
+            '<option value="2"' + (app.rating == 2 ? ' selected' : '') + '>2</option>' +
+            '<option value="3"' + (app.rating == 3 ? ' selected' : '') + '>3</option>' +
+            '<option value="4"' + (app.rating == 4 ? ' selected' : '') + '>4</option>' +
+            '<option value="5"' + (app.rating == 5 ? ' selected' : '') + '>5</option>' +
+            '</select></td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="fas fa-times"></i></button></td>';
+
+        tr.querySelector('.remove-row').addEventListener('click', function() {
+            tr.remove();
+            updateJson();
+        });
+
+        tr.querySelectorAll('input, select').forEach(function(el) {
+            el.addEventListener('change', updateJson);
+            el.addEventListener('input', updateJson);
+        });
+
+        return tr;
+    }
+
+    function updateJson() {
+        var apps = [];
+        var rows = nativeAppsBody.querySelectorAll('tr');
+        rows.forEach(function(row) {
+            var name = row.querySelector('.native-name').value.trim();
+            var url = row.querySelector('.native-url').value.trim();
+            var rating = parseInt(row.querySelector('.native-rating').value) || 0;
+            if (name) {
+                apps.push({ name: name, store_url: url, rating: rating });
+            }
+        });
+        nativeAppsJson.value = JSON.stringify(apps);
+    }
+
+    function loadExisting() {
+        try {
+            var data = JSON.parse(nativeAppsJson.value || '[]');
+            if (Array.isArray(data)) {
+                data.forEach(function(app) {
+                    nativeAppsBody.appendChild(createRow(app));
+                });
+            }
+        } catch (e) {
+            console.error('Failed to parse native apps JSON:', e);
+        }
+    }
+
+    addBtn.addEventListener('click', function() {
+        nativeAppsBody.appendChild(createRow());
+    });
+
+    loadExisting();
 })();
 </script>
 {% endblock %}
