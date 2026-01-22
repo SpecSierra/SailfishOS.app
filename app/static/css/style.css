@@ -454,6 +454,32 @@ main {
     color: var(--primary);
 }
 
+/* Dark theme table-secondary (rolled back items) */
+[data-theme="dark"] .table-secondary,
+[data-theme="dark"] .table-secondary > td,
+[data-theme="dark"] .table-secondary > th {
+    background-color: rgba(108, 117, 125, 0.3);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .table-danger,
+[data-theme="dark"] .table-danger > td,
+[data-theme="dark"] .table-danger > th {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: var(--text-body);
+}
+
+/* Dark theme badge adjustments */
+[data-theme="dark"] .badge-native {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+[data-theme="dark"] .badge-secondary {
+    background-color: #6c757d;
+    color: #fff;
+}
+
 /* Form styles */
 .form-control {
     background-color: var(--input-bg);
