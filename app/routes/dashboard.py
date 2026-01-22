@@ -125,6 +125,10 @@ def logout():
 @login_required
 @check_not_banned
 def index():
+    # Regular users are redirected to their profile
+    if current_user.role == 'user':
+        return redirect(url_for('dashboard.profile'))
+
     apps = DataManager.get_apps()
     categories = DataManager.get_categories()
     reports = DataManager.get_reports()

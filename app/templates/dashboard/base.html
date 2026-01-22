@@ -12,7 +12,7 @@
         <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar" id="dashboardSidebar" role="navigation" aria-label="Dashboard navigation">
             <div class="position-sticky">
                 <!-- User info with role badge - clickable to profile -->
-                <a href="{{ url_for('dashboard.profile') }}" class="d-block px-3 py-2 mb-2 text-decoration-none {% if request.endpoint == 'dashboard.profile' %}active{% endif %}" style="border-bottom: 1px solid rgba(255,255,255,0.1); color: inherit;">
+                <a href="{{ url_for('dashboard.profile') }}" class="sidebar-profile-link d-block px-3 py-2 mb-2 text-decoration-none {% if request.endpoint == 'dashboard.profile' %}active{% endif %}">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-user-circle mr-2" aria-hidden="true"></i>
                         <span class="font-weight-bold">{{ current_user.username }}</span>

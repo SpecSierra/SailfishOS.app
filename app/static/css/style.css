@@ -366,6 +366,33 @@ main {
     margin-right: 0.5rem;
 }
 
+/* Sidebar profile link */
+.dashboard-sidebar .sidebar-profile-link {
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-transition: background-color 0.15s ease-in-out;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.dashboard-sidebar .sidebar-profile-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-sidebar .sidebar-profile-link.active {
+    color: #fff;
+    background-color: rgba(26, 95, 122, 0.5);
+}
+
+/* Light theme sidebar profile link */
+[data-theme="light"] .dashboard-sidebar .sidebar-profile-link {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .dashboard-sidebar .sidebar-profile-link:hover {
+    color: #fff;
+}
+
 /* Dashboard content */
 .dashboard-content {
     padding: 1.5rem;
