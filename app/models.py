@@ -249,7 +249,7 @@ class DataManager:
 
     @classmethod
     def get_app_status_from_reports(cls, app_id):
-        """Determine android support status from community reports."""
+        """Determine android support status from community reports (legacy)."""
         reports = cls.get_reports_for_app(app_id)
         if not reports:
             return None
@@ -257,7 +257,8 @@ class DataManager:
         # Count statuses
         status_counts = {'yes': 0, 'partial': 0, 'no': 0, 'unknown': 0}
         for r in reports:
-            status = r.get('android_support_works', 'unknown')
+            # Support both old and new field names
+            status = r.get('works') or r.get('android_support_works', 'unknown')
             if status in status_counts:
                 status_counts[status] += 1
 
@@ -267,6 +268,59 @@ class DataManager:
             return None
 
         return max(known_statuses, key=known_statuses.get)
+
+    @classmethod
+    def get_app_ratings_by_platform(cls, app_id):
+        """
+        Calculate compatibility ratings from community reports grouped by platform.
+        Returns dict with 'android', 'native', 'browser' keys, each containing:
+        - status: 'yes', 'partial', 'no', or None
+        - count: number of reports
+        - works_count: breakdown of yes/partial/no counts
+        """
+        reports = cls.get_reports_for_app(app_id)
+
+        result = {
+            'android': {'status': None, 'count': 0, 'works_count': {'yes': 0, 'partial': 0, 'no': 0}},
+            'native': {'status': None, 'count': 0, 'works_count': {'yes': 0, 'partial': 0, 'no': 0}},
+            'browser': {'status': None, 'count': 0, 'works_count': {'yes': 0, 'partial': 0, 'no': 0}},
+        }
+
+        if not reports:
+            return result
+
+        for r in reports:
+            platform = r.get('platform')
+            # Handle legacy reports without platform field
+            if not platform:
+                # Old reports were for Android support
+                if r.get('android_support_works'):
+                    platform = 'android'
+                elif r.get('browser_works'):
+                    platform = 'browser'
+                else:
+                    continue
+
+            if platform not in result:
+                continue
+
+            # Get works status (support both old and new field names)
+            works = r.get('works') or r.get('android_support_works') or r.get('browser_works')
+            if works in ['yes', 'partial', 'no']:
+                result[platform]['count'] += 1
+                result[platform]['works_count'][works] += 1
+
+        # Calculate the overall status for each platform (most common response)
+        for platform in result:
+            counts = result[platform]['works_count']
+            total = result[platform]['count']
+            if total > 0:
+                # Find the most common status
+                max_status = max(counts, key=counts.get)
+                if counts[max_status] > 0:
+                    result[platform]['status'] = max_status
+
+        return result
 
     @classmethod
     def delete_user(cls, user_id):

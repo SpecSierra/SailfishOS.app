@@ -169,37 +169,59 @@
                         </div>
                         {% endif %}
 
-                        <!-- Android Support Status -->
-                        <div>
-                            {% set rating_data = app_ratings.get(app.id, {}) %}
-                            {% set community_status = rating_data.get('status') %}
-                            {% set report_count = rating_data.get('count', 0) %}
+                        <!-- Platform Compatibility from Community Reports -->
+                        {% set rating_data = app_ratings.get(app.id, {}) %}
+                        {% set platforms = rating_data.get('platforms', {}) %}
+                        {% set report_count = rating_data.get('count', 0) %}
 
-                            <span class="mr-2">Android Support:</span>
-                            {% set display_status = community_status if community_status else app.android_support_works %}
-                            {% if display_status == 'yes' %}
-                            <span class="badge badge-works"><i class="fas fa-check" aria-hidden="true"></i> Works</span>
-                            {% elif display_status == 'partial' %}
-                            <span class="badge badge-partial"><i class="fas fa-exclamation" aria-hidden="true"></i> Partial</span>
-                            {% elif display_status == 'no' %}
-                            <span class="badge badge-no"><i class="fas fa-times" aria-hidden="true"></i> Does Not Work</span>
-                            {% else %}
-                            <span class="badge badge-unknown"><i class="fas fa-question" aria-hidden="true"></i> Unknown</span>
-                            {% endif %}
-                        </div>
+                        <div class="d-flex flex-wrap align-items-center">
+                            <!-- Android -->
+                            {% set android = platforms.get('android', {}) %}
+                            <span class="mr-3" title="Android App Support">
+                                <i class="fab fa-android text-success"></i>
+                                {% if android.status == 'yes' %}
+                                <span class="badge badge-works"><i class="fas fa-check"></i></span>
+                                {% elif android.status == 'partial' %}
+                                <span class="badge badge-partial"><i class="fas fa-exclamation"></i></span>
+                                {% elif android.status == 'no' %}
+                                <span class="badge badge-no"><i class="fas fa-times"></i></span>
+                                {% else %}
+                                <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
+                                {% endif %}
+                                {% if android.count > 0 %}<small class="text-muted">({{ android.count }})</small>{% endif %}
+                            </span>
 
-                        <!-- Additional compatibility info -->
-                        <div class="mt-1">
-                            {% if app.browser_works == 'yes' %}
-                            <span class="badge badge-info" title="Works in SailfishOS Browser"><i class="fas fa-globe" aria-hidden="true"></i> Browser</span>
-                            {% endif %}
-                            {% if app.dependency == 'microg' %}
-                            <span class="badge badge-warning" title="Requires microG"><i class="fas fa-cog" aria-hidden="true"></i> microG</span>
-                            {% elif app.dependency == 'gapps' %}
-                            <span class="badge badge-warning" title="Requires Open GApps"><i class="fab fa-google" aria-hidden="true"></i> GApps</span>
-                            {% elif app.dependency == 'microg_or_gapps' %}
-                            <span class="badge badge-warning" title="Requires microG or GApps"><i class="fas fa-cog" aria-hidden="true"></i> microG/GApps</span>
-                            {% endif %}
+                            <!-- Native -->
+                            {% set native = platforms.get('native', {}) %}
+                            <span class="mr-3" title="Native SailfishOS App">
+                                <i class="fas fa-ship text-info"></i>
+                                {% if native.status == 'yes' %}
+                                <span class="badge badge-works"><i class="fas fa-check"></i></span>
+                                {% elif native.status == 'partial' %}
+                                <span class="badge badge-partial"><i class="fas fa-exclamation"></i></span>
+                                {% elif native.status == 'no' %}
+                                <span class="badge badge-no"><i class="fas fa-times"></i></span>
+                                {% else %}
+                                <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
+                                {% endif %}
+                                {% if native.count > 0 %}<small class="text-muted">({{ native.count }})</small>{% endif %}
+                            </span>
+
+                            <!-- Browser -->
+                            {% set browser = platforms.get('browser', {}) %}
+                            <span title="Web Browser">
+                                <i class="fas fa-globe text-secondary"></i>
+                                {% if browser.status == 'yes' %}
+                                <span class="badge badge-works"><i class="fas fa-check"></i></span>
+                                {% elif browser.status == 'partial' %}
+                                <span class="badge badge-partial"><i class="fas fa-exclamation"></i></span>
+                                {% elif browser.status == 'no' %}
+                                <span class="badge badge-no"><i class="fas fa-times"></i></span>
+                                {% else %}
+                                <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
+                                {% endif %}
+                                {% if browser.count > 0 %}<small class="text-muted">({{ browser.count }})</small>{% endif %}
+                            </span>
                         </div>
 
                         {% if report_count > 0 %}

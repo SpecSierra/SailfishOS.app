@@ -93,104 +93,142 @@
                     </div>
                 </div>
 
-                <!-- Android App Support Section -->
-                {% set display_status = community_status if community_status else app.android_support_works %}
-                <div class="card {% if display_status == 'yes' %}border-success{% elif display_status == 'partial' %}border-warning{% elif display_status == 'no' %}border-danger{% else %}border-secondary{% endif %}">
-                    <div class="card-header
-                        {% if display_status == 'yes' %}bg-success text-white
-                        {% elif display_status == 'partial' %}bg-warning
-                        {% elif display_status == 'no' %}bg-danger text-white
-                        {% else %}bg-light{% endif %}">
-                        <i class="fab fa-android"></i> Android App Support
+                <!-- Community Compatibility Ratings -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-chart-bar"></i> Community Compatibility Ratings
                         {% if report_count > 0 %}
-                        <small class="ml-2">(based on {{ report_count }} report{% if report_count != 1 %}s{% endif %})</small>
+                        <small class="ml-2">({{ report_count }} report{% if report_count != 1 %}s{% endif %})</small>
                         {% endif %}
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            {% if display_status == 'yes' %}
-                            <span class="badge badge-works badge-lg">
-                                <i class="fas fa-check" aria-hidden="true"></i> Works
-                            </span>
-                            {% elif display_status == 'partial' %}
-                            <span class="badge badge-partial badge-lg">
-                                <i class="fas fa-exclamation" aria-hidden="true"></i> Partial
-                            </span>
-                            {% elif display_status == 'no' %}
-                            <span class="badge badge-no badge-lg">
-                                <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
-                            </span>
-                            {% else %}
-                            <span class="badge badge-unknown badge-lg">
-                                <i class="fas fa-question" aria-hidden="true"></i> Unknown
-                            </span>
-                            {% endif %}
-                        </div>
+                        <div class="row">
+                            <!-- Android App Support -->
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center p-3 border rounded h-100">
+                                    <div class="mb-2">
+                                        <i class="fab fa-android fa-2x text-success"></i>
+                                    </div>
+                                    <h6>Android App</h6>
+                                    {% set android = platform_ratings.android %}
+                                    {% if android.count > 0 %}
+                                        {% if android.status == 'yes' %}
+                                        <span class="badge badge-works badge-lg">
+                                            <i class="fas fa-check"></i> Works
+                                        </span>
+                                        {% elif android.status == 'partial' %}
+                                        <span class="badge badge-partial badge-lg">
+                                            <i class="fas fa-exclamation"></i> Partial
+                                        </span>
+                                        {% elif android.status == 'no' %}
+                                        <span class="badge badge-no badge-lg">
+                                            <i class="fas fa-times"></i> No
+                                        </span>
+                                        {% endif %}
+                                        <div class="small text-muted mt-2">
+                                            {{ android.count }} report{% if android.count != 1 %}s{% endif %}
+                                        </div>
+                                        <div class="small mt-1">
+                                            <span class="text-success">{{ android.works_count.yes }}</span> |
+                                            <span class="text-warning">{{ android.works_count.partial }}</span> |
+                                            <span class="text-danger">{{ android.works_count.no }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge badge-unknown badge-lg">
+                                            <i class="fas fa-question"></i> No data
+                                        </span>
+                                        <div class="small text-muted mt-2">No reports yet</div>
+                                    {% endif %}
+                                </div>
+                            </div>
 
-                        {% if app.android_support_notes %}
-                        <div class="alert alert-secondary">
-                            <strong><i class="fas fa-sticky-note"></i> Notes:</strong>
-                            <p class="mb-0 mt-2">{{ app.android_support_notes }}</p>
-                        </div>
-                        {% endif %}
+                            <!-- Native App -->
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center p-3 border rounded h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-ship fa-2x text-info"></i>
+                                    </div>
+                                    <h6>Native App</h6>
+                                    {% set native = platform_ratings.native %}
+                                    {% if native.count > 0 %}
+                                        {% if native.status == 'yes' %}
+                                        <span class="badge badge-works badge-lg">
+                                            <i class="fas fa-check"></i> Works
+                                        </span>
+                                        {% elif native.status == 'partial' %}
+                                        <span class="badge badge-partial badge-lg">
+                                            <i class="fas fa-exclamation"></i> Partial
+                                        </span>
+                                        {% elif native.status == 'no' %}
+                                        <span class="badge badge-no badge-lg">
+                                            <i class="fas fa-times"></i> No
+                                        </span>
+                                        {% endif %}
+                                        <div class="small text-muted mt-2">
+                                            {{ native.count }} report{% if native.count != 1 %}s{% endif %}
+                                        </div>
+                                        <div class="small mt-1">
+                                            <span class="text-success">{{ native.works_count.yes }}</span> |
+                                            <span class="text-warning">{{ native.works_count.partial }}</span> |
+                                            <span class="text-danger">{{ native.works_count.no }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge badge-unknown badge-lg">
+                                            <i class="fas fa-question"></i> No data
+                                        </span>
+                                        <div class="small text-muted mt-2">No reports yet</div>
+                                    {% endif %}
+                                </div>
+                            </div>
 
-                        <!-- Dependency Info -->
-                        {% if app.dependency and app.dependency != 'none' %}
-                        <div class="alert alert-warning mt-3 mb-0">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Requires:</strong>
-                            {% if app.dependency == 'microg' %}
-                            microG for Google Services
-                            {% elif app.dependency == 'gapps' %}
-                            Open GApps
-                            {% elif app.dependency == 'microg_or_gapps' %}
-                            microG or Open GApps
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Browser Compatibility Section -->
-                <div class="card mb-3 {% if app.browser_works == 'yes' %}border-info{% elif app.browser_works == 'partial' %}border-warning{% elif app.browser_works == 'no' %}border-danger{% else %}border-secondary{% endif %}">
-                    <div class="card-header {% if app.browser_works == 'yes' %}bg-info text-white{% elif app.browser_works == 'partial' %}bg-warning{% elif app.browser_works == 'no' %}bg-danger text-white{% else %}bg-light{% endif %}">
-                        <i class="fas fa-globe"></i> SailfishOS Browser
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if app.browser_works == 'yes' %}
-                                <span class="badge badge-works badge-lg">
-                                    <i class="fas fa-check" aria-hidden="true"></i> Works in Browser
-                                </span>
-                                <p class="text-muted small mt-2 mb-0">This app/service can be used via the SailfishOS web browser</p>
-                                {% elif app.browser_works == 'partial' %}
-                                <span class="badge badge-partial badge-lg">
-                                    <i class="fas fa-exclamation" aria-hidden="true"></i> Partially Works
-                                </span>
-                                <p class="text-muted small mt-2 mb-0">Some features work in the browser</p>
-                                {% elif app.browser_works == 'no' %}
-                                <span class="badge badge-no badge-lg">
-                                    <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
-                                </span>
-                                <p class="text-muted small mt-2 mb-0">The web version does not work in SailfishOS browser</p>
-                                {% elif app.browser_works == 'na' %}
-                                <span class="badge badge-secondary badge-lg">
-                                    <i class="fas fa-minus" aria-hidden="true"></i> Not Applicable
-                                </span>
-                                <p class="text-muted small mt-2 mb-0">This app does not have a web version</p>
-                                {% else %}
-                                <span class="badge badge-unknown badge-lg">
-                                    <i class="fas fa-question" aria-hidden="true"></i> Unknown
-                                </span>
-                                <p class="text-muted small mt-2 mb-0">Browser compatibility has not been tested yet</p>
-                                {% endif %}
+                            <!-- Browser -->
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-globe fa-2x text-secondary"></i>
+                                    </div>
+                                    <h6>Web Browser</h6>
+                                    {% set browser = platform_ratings.browser %}
+                                    {% if browser.count > 0 %}
+                                        {% if browser.status == 'yes' %}
+                                        <span class="badge badge-works badge-lg">
+                                            <i class="fas fa-check"></i> Works
+                                        </span>
+                                        {% elif browser.status == 'partial' %}
+                                        <span class="badge badge-partial badge-lg">
+                                            <i class="fas fa-exclamation"></i> Partial
+                                        </span>
+                                        {% elif browser.status == 'no' %}
+                                        <span class="badge badge-no badge-lg">
+                                            <i class="fas fa-times"></i> No
+                                        </span>
+                                        {% endif %}
+                                        <div class="small text-muted mt-2">
+                                            {{ browser.count }} report{% if browser.count != 1 %}s{% endif %}
+                                        </div>
+                                        <div class="small mt-1">
+                                            <span class="text-success">{{ browser.works_count.yes }}</span> |
+                                            <span class="text-warning">{{ browser.works_count.partial }}</span> |
+                                            <span class="text-danger">{{ browser.works_count.no }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge badge-unknown badge-lg">
+                                            <i class="fas fa-question"></i> No data
+                                        </span>
+                                        <div class="small text-muted mt-2">No reports yet</div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        {% if app.browser_notes %}
-                        <div class="alert alert-secondary mt-3 mb-0">
-                            <strong><i class="fas fa-sticky-note"></i> Browser Notes:</strong>
-                            <p class="mb-0 mt-2">{{ app.browser_notes }}</p>
+
+                        {% if app.android_support_notes or app.browser_notes %}
+                        <div class="mt-3">
+                            {% if app.android_support_notes %}
+                            <div class="alert alert-secondary mb-2">
+                                <strong><i class="fas fa-sticky-note"></i> Notes:</strong>
+                                <p class="mb-0 mt-2">{{ app.android_support_notes }}</p>
+                            </div>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>

@@ -125,10 +125,12 @@ def index():
     for app in paginated_apps:
         rating, count = DataManager.get_app_rating_from_reports(app['id'])
         community_status = DataManager.get_app_status_from_reports(app['id'])
+        platform_ratings = DataManager.get_app_ratings_by_platform(app['id'])
         app_ratings[app['id']] = {
             'rating': rating,
             'count': count,
-            'status': community_status
+            'status': community_status,
+            'platforms': platform_ratings
         }
 
     return render_template(
@@ -159,6 +161,7 @@ def app_detail(app_id):
     # Calculate rating from community reports
     community_rating, report_count = DataManager.get_app_rating_from_reports(app_id)
     community_status = DataManager.get_app_status_from_reports(app_id)
+    platform_ratings = DataManager.get_app_ratings_by_platform(app_id)
 
     if form.validate_on_submit():
         # Verify hCaptcha
@@ -174,7 +177,8 @@ def app_detail(app_id):
                 hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'],
                 community_rating=community_rating,
                 community_status=community_status,
-                report_count=report_count
+                report_count=report_count,
+                platform_ratings=platform_ratings
             )
 
         # Save the report
@@ -217,7 +221,8 @@ def app_detail(app_id):
         hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'],
         community_rating=community_rating,
         community_status=community_status,
-        report_count=report_count
+        report_count=report_count,
+        platform_ratings=platform_ratings
     )
 
 
