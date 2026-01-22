@@ -185,7 +185,7 @@ def app_detail(app_id):
             'rating': int(form.rating.data),
             'dependency': form.dependency.data or None,
             'browser_works': form.browser_works.data or None,
-            'device': form.device.data,
+            'device': form.custom_device.data if form.device.data == 'custom' else form.device.data,
             'sailfish_version': form.sailfish_version.data,
             'app_version': form.app_version.data,
             'notes': form.notes.data,

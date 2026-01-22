@@ -335,7 +335,11 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="device"><i class="fas fa-mobile-alt"></i> Device</label>
-                                {{ form.device(class="form-control", placeholder="e.g., Xperia 10 III") }}
+                                {{ form.device(class="form-control", id="device-select") }}
+                            </div>
+                            <div class="form-group" id="custom-device-group" style="display: none;">
+                                <label for="custom_device"><i class="fas fa-edit"></i> Custom Device Name</label>
+                                {{ form.custom_device(class="form-control", placeholder="Enter your device name") }}
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -469,4 +473,27 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var deviceSelect = document.getElementById('device-select');
+    var customDeviceGroup = document.getElementById('custom-device-group');
+
+    function toggleCustomDevice() {
+        if (deviceSelect.value === 'custom') {
+            customDeviceGroup.style.display = 'block';
+        } else {
+            customDeviceGroup.style.display = 'none';
+        }
+    }
+
+    // Initial check
+    toggleCustomDevice();
+
+    // Listen for changes
+    deviceSelect.addEventListener('change', toggleCustomDevice);
+});
+</script>
 {% endblock %}

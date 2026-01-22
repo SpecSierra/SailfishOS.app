@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from app import login_manager
 from app.models import DataManager, User
-from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm
+from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm, SUPPORTED_DEVICES
 from app.utils import fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
 from app.logs import LogManager
@@ -605,7 +605,7 @@ def reports_edit(report_id):
         report['rating'] = int(form.rating.data)
         report['dependency'] = form.dependency.data or None
         report['browser_works'] = form.browser_works.data or None
-        report['device'] = form.device.data
+        report['device'] = form.custom_device.data if form.device.data == 'custom' else form.device.data
         report['sailfish_version'] = form.sailfish_version.data
         report['app_version'] = form.app_version.data
         report['notes'] = form.notes.data
@@ -633,7 +633,16 @@ def reports_edit(report_id):
     form.rating.data = str(report.get('rating', ''))
     form.dependency.data = report.get('dependency', '')
     form.browser_works.data = report.get('browser_works', '')
-    form.device.data = report.get('device', '')
+    # Check if device is in the standard list or a custom one
+    stored_device = report.get('device', '')
+    standard_devices = [d[0] for d in SUPPORTED_DEVICES if d[0] and d[0] != 'custom']
+    if stored_device in standard_devices:
+        form.device.data = stored_device
+    elif stored_device:
+        form.device.data = 'custom'
+        form.custom_device.data = stored_device
+    else:
+        form.device.data = ''
     form.sailfish_version.data = report.get('sailfish_version', '')
     form.app_version.data = report.get('app_version', '')
     form.notes.data = report.get('notes', '')

@@ -40,6 +40,30 @@ DEPENDENCY_CHOICES = [
     ('microg_or_gapps', 'Requires microG or GApps'),
 ]
 
+# Official SailfishOS supported devices
+SUPPORTED_DEVICES = [
+    ('', '-- Select Device --'),
+    # Currently supported devices
+    ('Jolla C2', 'Jolla C2'),
+    ('Xperia 10 V', 'Xperia 10 V'),
+    ('Xperia 10 IV', 'Xperia 10 IV'),
+    ('Xperia 10 III', 'Xperia 10 III'),
+    ('Xperia 10 II', 'Xperia 10 II'),
+    ('Xperia 10', 'Xperia 10'),
+    ('Xperia 10 Plus', 'Xperia 10 Plus'),
+    ('Xperia XA2', 'Xperia XA2'),
+    ('Xperia XA2 Plus', 'Xperia XA2 Plus'),
+    ('Xperia XA2 Ultra', 'Xperia XA2 Ultra'),
+    # Ceased support devices
+    ('Gemini PDA', 'Gemini PDA [Legacy]'),
+    ('Xperia X', 'Xperia X [Legacy]'),
+    ('Jolla C', 'Jolla C [Legacy]'),
+    ('Jolla Tablet', 'Jolla Tablet [Legacy]'),
+    ('Jolla Phone', 'Jolla Phone [Legacy]'),
+    # Custom option
+    ('custom', 'Other (Custom Device)'),
+]
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
@@ -165,7 +189,8 @@ class ReportForm(FlaskForm):
         ('na', 'Not applicable / No web version'),
     ], validators=[Optional()])
 
-    device = StringField('Device Model', validators=[Optional(), Length(max=100)])
+    device = SelectField('Device Model', choices=SUPPORTED_DEVICES, validators=[Optional()])
+    custom_device = StringField('Custom Device', validators=[Optional(), Length(max=100)])
     sailfish_version = StringField('SailfishOS Version', validators=[Optional(), Length(max=50)])
     app_version = StringField('App Version', validators=[Optional(), Length(max=50)])
 
