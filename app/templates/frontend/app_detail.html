@@ -78,16 +78,10 @@
                                 </a>
                                 {% endif %}
                             </div>
-                            {% if native_app.rating and native_app.rating > 0 %}
-                            <div class="rating" role="img" aria-label="Rating: {{ native_app.rating }} out of 5 stars">
-                                {% for i in range(5) %}
-                                    {% if i < native_app.rating %}
-                                    <i class="fas fa-star" aria-hidden="true"></i>
-                                    {% else %}
-                                    <i class="fas fa-star empty" aria-hidden="true"></i>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                            {% if native_app.rating and native_app.rating != 'none' and native_app.rating != 0 %}
+                            <span class="badge badge-tier-{{ native_app.rating }}">
+                                <i class="fas fa-medal" aria-hidden="true"></i> {{ native_app.rating|capitalize }}
+                            </span>
                             {% endif %}
                         </div>
                         {% endfor %}

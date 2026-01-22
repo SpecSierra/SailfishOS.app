@@ -116,7 +116,7 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Store URL</th>
-                                <th style="width: 80px;">Rating</th>
+                                <th style="width: 110px;">Tier</th>
                                 <th style="width: 50px;"></th>
                             </tr>
                         </thead>
@@ -370,18 +370,18 @@
     var addBtn = document.getElementById('addNativeAppBtn');
 
     function createRow(app) {
-        app = app || { name: '', store_url: '', rating: 0 };
+        app = app || { name: '', store_url: '', rating: 'none' };
+        var rating = app.rating || 'none';
         var tr = document.createElement('tr');
         tr.innerHTML =
             '<td><input type="text" class="form-control form-control-sm native-name" value="' + (app.name || '') + '" placeholder="App name"></td>' +
             '<td><input type="text" class="form-control form-control-sm native-url" value="' + (app.store_url || '') + '" placeholder="https://..."></td>' +
             '<td><select class="form-control form-control-sm native-rating">' +
-            '<option value="0"' + (app.rating == 0 ? ' selected' : '') + '>0</option>' +
-            '<option value="1"' + (app.rating == 1 ? ' selected' : '') + '>1</option>' +
-            '<option value="2"' + (app.rating == 2 ? ' selected' : '') + '>2</option>' +
-            '<option value="3"' + (app.rating == 3 ? ' selected' : '') + '>3</option>' +
-            '<option value="4"' + (app.rating == 4 ? ' selected' : '') + '>4</option>' +
-            '<option value="5"' + (app.rating == 5 ? ' selected' : '') + '>5</option>' +
+            '<option value="none"' + (rating == 'none' || rating == 0 ? ' selected' : '') + '>Not Rated</option>' +
+            '<option value="platinum"' + (rating == 'platinum' ? ' selected' : '') + '>Platinum</option>' +
+            '<option value="gold"' + (rating == 'gold' ? ' selected' : '') + '>Gold</option>' +
+            '<option value="silver"' + (rating == 'silver' ? ' selected' : '') + '>Silver</option>' +
+            '<option value="bronze"' + (rating == 'bronze' ? ' selected' : '') + '>Bronze</option>' +
             '</select></td>' +
             '<td><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="fas fa-times"></i></button></td>';
 
@@ -404,7 +404,7 @@
         rows.forEach(function(row) {
             var name = row.querySelector('.native-name').value.trim();
             var url = row.querySelector('.native-url').value.trim();
-            var rating = parseInt(row.querySelector('.native-rating').value) || 0;
+            var rating = row.querySelector('.native-rating').value || 'none';
             if (name) {
                 apps.push({ name: name, store_url: url, rating: rating });
             }

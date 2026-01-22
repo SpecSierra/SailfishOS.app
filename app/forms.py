@@ -87,13 +87,12 @@ class AppForm(FlaskForm):
     native_name = StringField('Native App Name', validators=[Optional(), Length(max=100)])
     native_store_url = StringField('Store URL', validators=[Optional(), Length(max=500)])
     native_rating = SelectField('Native App Rating', choices=[
-        ('0', 'Not Rated'),
-        ('1', '1 - Poor'),
-        ('2', '2 - Fair'),
-        ('3', '3 - Good'),
-        ('4', '4 - Very Good'),
-        ('5', '5 - Excellent')
-    ], default='0')
+        ('none', 'Not Rated'),
+        ('platinum', 'Platinum - Feature complete'),
+        ('gold', 'Gold - Most features work'),
+        ('silver', 'Silver - Core features work'),
+        ('bronze', 'Bronze - Limited functionality'),
+    ], default='none')
     # Additional native apps (JSON format for multiple entries)
     additional_native_apps = TextAreaField('Additional Native Apps (JSON)', validators=[Optional(), Length(max=2000)])
 

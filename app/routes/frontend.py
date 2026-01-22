@@ -275,7 +275,7 @@ def submit_app():
             'native_exists': False,
             'native_name': '',
             'native_store_url': '',
-            'native_rating': 0,
+            'native_rating': 'none',
             'additional_native_apps': [],
             'android_support_works': 'unknown',
             'android_support_rating': 0,

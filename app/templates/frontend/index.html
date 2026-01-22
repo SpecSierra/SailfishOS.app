@@ -158,15 +158,9 @@
                             {% else %}
                             <strong>{{ app.native_name }}</strong>
                             {% endif %}
-                            {% if app.native_rating > 0 %}
-                            <span class="rating ml-2" role="img" aria-label="Rating: {{ app.native_rating }} out of 5 stars">
-                                {% for i in range(5) %}
-                                    {% if i < app.native_rating %}
-                                    <i class="fas fa-star" aria-hidden="true"></i>
-                                    {% else %}
-                                    <i class="fas fa-star empty" aria-hidden="true"></i>
-                                    {% endif %}
-                                {% endfor %}
+                            {% if app.native_rating and app.native_rating != 'none' and app.native_rating != 0 %}
+                            <span class="badge badge-tier-{{ app.native_rating }} ml-2">
+                                <i class="fas fa-medal" aria-hidden="true"></i> {{ app.native_rating|capitalize }}
                             </span>
                             {% endif %}
                             {% if app.additional_native_apps %}

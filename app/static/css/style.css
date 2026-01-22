@@ -212,6 +212,52 @@ main {
     color: #fff;
 }
 
+/* ProtonDB-style tier badges for native app feature completeness */
+.badge-tier-platinum {
+    background: linear-gradient(135deg, #b4c7dc 0%, #8fa8c8 50%, #b4c7dc 100%);
+    color: #1a2a3a;
+    font-weight: 600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.badge-tier-gold {
+    background: linear-gradient(135deg, #f5d97f 0%, #cfaa45 50%, #f5d97f 100%);
+    color: #3a2a00;
+    font-weight: 600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.badge-tier-silver {
+    background: linear-gradient(135deg, #d4d4d4 0%, #a8a8a8 50%, #d4d4d4 100%);
+    color: #2a2a2a;
+    font-weight: 600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.badge-tier-bronze {
+    background: linear-gradient(135deg, #cd8c52 0%, #a66a2e 50%, #cd8c52 100%);
+    color: #2a1a00;
+    font-weight: 600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Dark theme tier badge adjustments */
+[data-theme="dark"] .badge-tier-platinum {
+    background: linear-gradient(135deg, #c4d7ec 0%, #9fb8d8 50%, #c4d7ec 100%);
+}
+
+[data-theme="dark"] .badge-tier-gold {
+    background: linear-gradient(135deg, #ffe99f 0%, #dfba55 50%, #ffe99f 100%);
+}
+
+[data-theme="dark"] .badge-tier-silver {
+    background: linear-gradient(135deg, #e4e4e4 0%, #b8b8b8 50%, #e4e4e4 100%);
+}
+
+[data-theme="dark"] .badge-tier-bronze {
+    background: linear-gradient(135deg, #dd9c62 0%, #b67a3e 50%, #dd9c62 100%);
+}
+
 /* Highlight rows with native apps */
 .app-row.has-native {
     background-color: rgba(23, 162, 184, 0.08);
