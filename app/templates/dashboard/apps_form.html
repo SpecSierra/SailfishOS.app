@@ -228,6 +228,7 @@
                         <thead>
                             <tr>
                                 <th>Reporter</th>
+                                <th>Platform</th>
                                 <th>Status</th>
                                 <th>Notes</th>
                                 <th>Date</th>
@@ -239,11 +240,23 @@
                             <tr>
                                 <td>{{ report.reporter_name or 'Anonymous' }}</td>
                                 <td>
-                                    {% if report.android_support_works == 'yes' %}
+                                    {% if report.platform == 'android' %}
+                                    <span class="badge badge-secondary"><i class="fab fa-android" aria-hidden="true"></i></span>
+                                    {% elif report.platform == 'native' %}
+                                    <span class="badge badge-info"><i class="fas fa-ship" aria-hidden="true"></i></span>
+                                    {% elif report.platform == 'browser' %}
+                                    <span class="badge badge-secondary"><i class="fas fa-globe" aria-hidden="true"></i></span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set works_status = report.works if report.works else report.android_support_works %}
+                                    {% if works_status == 'yes' %}
                                     <span class="badge badge-works">Works</span>
-                                    {% elif report.android_support_works == 'partial' %}
+                                    {% elif works_status == 'partial' %}
                                     <span class="badge badge-partial">Partial</span>
-                                    {% elif report.android_support_works == 'no' %}
+                                    {% elif works_status == 'no' %}
                                     <span class="badge badge-no">No</span>
                                     {% else %}
                                     <span class="badge badge-unknown">Unknown</span>

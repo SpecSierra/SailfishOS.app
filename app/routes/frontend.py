@@ -181,9 +181,9 @@ def app_detail(app_id):
         report_data = {
             'app_id': app_id,
             'reporter_name': form.reporter_name.data or 'Anonymous',
-            'android_support_works': form.android_support_works.data,
-            'dependency': form.dependency.data or None,
-            'browser_works': form.browser_works.data or None,
+            'platform': form.platform.data,
+            'works': form.works.data,
+            'dependency': form.dependency.data if form.platform.data == 'android' else None,
             'device': form.custom_device.data if form.device.data == 'custom' else form.device.data,
             'sailfish_version': form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data,
             'app_version': form.app_version.data,

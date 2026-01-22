@@ -601,9 +601,9 @@ def reports_edit(report_id):
 
     if form.validate_on_submit():
         # Update report data
-        report['android_support_works'] = form.android_support_works.data
-        report['dependency'] = form.dependency.data or None
-        report['browser_works'] = form.browser_works.data or None
+        report['platform'] = form.platform.data
+        report['works'] = form.works.data
+        report['dependency'] = form.dependency.data if form.platform.data == 'android' else None
         report['device'] = form.custom_device.data if form.device.data == 'custom' else form.device.data
         report['sailfish_version'] = form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data
         report['app_version'] = form.app_version.data
@@ -628,9 +628,9 @@ def reports_edit(report_id):
         return redirect(url_for('dashboard.reports_list'))
 
     # Pre-populate form
-    form.android_support_works.data = report.get('android_support_works', '')
+    form.platform.data = report.get('platform', '')
+    form.works.data = report.get('works', '')
     form.dependency.data = report.get('dependency', '')
-    form.browser_works.data = report.get('browser_works', '')
     # Check if device is in the standard list or a custom one
     stored_device = report.get('device', '')
     standard_devices = [d[0] for d in SUPPORTED_DEVICES if d[0] and d[0] != 'custom']

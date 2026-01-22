@@ -31,28 +31,30 @@
         <form method="POST">
             {{ form.hidden_tag() }}
 
-            <div class="form-group">
-                {{ form.android_support_works.label(class="form-label") }}
-                {{ form.android_support_works(class="form-control") }}
-                {% if form.android_support_works.errors %}
-                <div class="invalid-feedback d-block">{{ form.android_support_works.errors[0] }}</div>
-                {% endif %}
-            </div>
-
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
-                        {{ form.dependency.label(class="form-label") }}
-                        {{ form.dependency(class="form-control") }}
+                        {{ form.platform.label(class="form-label") }}
+                        {{ form.platform(class="form-control", id="platform-select") }}
+                        {% if form.platform.errors %}
+                        <div class="invalid-feedback d-block">{{ form.platform.errors[0] }}</div>
+                        {% endif %}
                     </div>
                 </div>
-
                 <div class="col-md-6">
                     <div class="form-group">
-                        {{ form.browser_works.label(class="form-label") }}
-                        {{ form.browser_works(class="form-control") }}
+                        {{ form.works.label(class="form-label") }}
+                        {{ form.works(class="form-control") }}
+                        {% if form.works.errors %}
+                        <div class="invalid-feedback d-block">{{ form.works.errors[0] }}</div>
+                        {% endif %}
                     </div>
                 </div>
+            </div>
+
+            <div class="form-group" id="dependency-group" style="display: none;">
+                {{ form.dependency.label(class="form-label") }}
+                {{ form.dependency(class="form-control") }}
             </div>
 
             <div class="row">
@@ -123,42 +125,52 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var platformSelect = document.getElementById('platform-select');
+    var dependencyGroup = document.getElementById('dependency-group');
     var deviceSelect = document.getElementById('device-select');
     var customDeviceGroup = document.getElementById('custom-device-group');
     var sfosSelect = document.getElementById('sfos-select');
     var customSfosGroup = document.getElementById('custom-sfos-group');
 
-    if (deviceSelect && customDeviceGroup) {
-        function toggleCustomDevice() {
+    function toggleDependency() {
+        if (platformSelect && dependencyGroup) {
+            if (platformSelect.value === 'android') {
+                dependencyGroup.style.display = 'block';
+            } else {
+                dependencyGroup.style.display = 'none';
+            }
+        }
+    }
+
+    function toggleCustomDevice() {
+        if (deviceSelect && customDeviceGroup) {
             if (deviceSelect.value === 'custom') {
                 customDeviceGroup.style.display = 'block';
             } else {
                 customDeviceGroup.style.display = 'none';
             }
         }
-
-        // Initial check
-        toggleCustomDevice();
-
-        // Listen for changes
-        deviceSelect.addEventListener('change', toggleCustomDevice);
     }
 
-    if (sfosSelect && customSfosGroup) {
-        function toggleCustomSfos() {
+    function toggleCustomSfos() {
+        if (sfosSelect && customSfosGroup) {
             if (sfosSelect.value === 'custom') {
                 customSfosGroup.style.display = 'block';
             } else {
                 customSfosGroup.style.display = 'none';
             }
         }
-
-        // Initial check
-        toggleCustomSfos();
-
-        // Listen for changes
-        sfosSelect.addEventListener('change', toggleCustomSfos);
     }
+
+    // Initial check
+    toggleDependency();
+    toggleCustomDevice();
+    toggleCustomSfos();
+
+    // Listen for changes
+    if (platformSelect) platformSelect.addEventListener('change', toggleDependency);
+    if (deviceSelect) deviceSelect.addEventListener('change', toggleCustomDevice);
+    if (sfosSelect) sfosSelect.addEventListener('change', toggleCustomSfos);
 });
 </script>
 {% endblock %}

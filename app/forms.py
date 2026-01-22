@@ -172,30 +172,29 @@ class ReportForm(FlaskForm):
     """User report form for app compatibility (no account required)."""
     reporter_name = StringField('Your Name', validators=[Optional(), Length(max=50)])
 
-    android_support_works = SelectField('Does it work via Android App Support?', choices=[
+    # Platform being tested
+    platform = SelectField('What are you testing?', choices=[
+        ('', '-- Select Platform --'),
+        ('android', 'Android App (via Android App Support)'),
+        ('native', 'Native SailfishOS App'),
+        ('browser', 'Web Browser'),
+    ], validators=[DataRequired(message='Please select which platform you are testing')])
+
+    # Does it work?
+    works = SelectField('Does it work?', choices=[
         ('', '-- Select --'),
         ('yes', 'Yes, it works'),
         ('partial', 'Partially works'),
         ('no', 'Does not work'),
-        ('unknown', 'I don\'t know')
     ], validators=[DataRequired(message='Please select a compatibility status')])
 
-    # microG/GApps dependency
+    # Google Services dependency (only for Android platform)
     dependency = SelectField('Google Services Required?', choices=[
         ('', '-- Select --'),
         ('none', 'No - works without Google Services'),
         ('microg', 'Requires microG'),
         ('gapps', 'Requires Open GApps'),
         ('microg_or_gapps', 'Requires microG or GApps'),
-    ], validators=[Optional()])
-
-    # Browser compatibility
-    browser_works = SelectField('Works in SailfishOS Browser?', choices=[
-        ('', '-- Select --'),
-        ('yes', 'Yes, web version works'),
-        ('partial', 'Partially works in browser'),
-        ('no', 'Does not work in browser'),
-        ('na', 'Not applicable / No web version'),
     ], validators=[Optional()])
 
     device = SelectField('Device Model', choices=SUPPORTED_DEVICES, validators=[Optional()])
