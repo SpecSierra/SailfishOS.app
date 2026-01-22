@@ -64,6 +64,25 @@ SUPPORTED_DEVICES = [
     ('custom', 'Other (Custom Device)'),
 ]
 
+# SailfishOS versions
+SFOS_VERSIONS = [
+    ('', '-- Select Version --'),
+    ('5.0', '5.0'),
+    ('4.6', '4.6'),
+    ('4.5', '4.5'),
+    ('4.4', '4.4'),
+    ('4.3', '4.3'),
+    ('4.2', '4.2'),
+    ('4.1', '4.1'),
+    ('4.0', '4.0'),
+    ('3.4', '3.4'),
+    ('3.3', '3.3'),
+    ('3.2', '3.2'),
+    ('3.1', '3.1'),
+    ('3.0', '3.0'),
+    ('custom', 'Other (Custom Version)'),
+]
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
@@ -161,15 +180,6 @@ class ReportForm(FlaskForm):
         ('unknown', 'I don\'t know')
     ], validators=[DataRequired(message='Please select a compatibility status')])
 
-    rating = SelectField('Overall Rating', choices=[
-        ('', '-- Select --'),
-        ('1', '1 - Unusable'),
-        ('2', '2 - Poor'),
-        ('3', '3 - Usable'),
-        ('4', '4 - Good'),
-        ('5', '5 - Perfect')
-    ], validators=[DataRequired(message='Please select a rating')])
-
     # microG/GApps dependency
     dependency = SelectField('Google Services Required?', choices=[
         ('', '-- Select --'),
@@ -190,7 +200,8 @@ class ReportForm(FlaskForm):
 
     device = SelectField('Device Model', choices=SUPPORTED_DEVICES, validators=[Optional()])
     custom_device = StringField('Custom Device', validators=[Optional(), Length(max=100)])
-    sailfish_version = StringField('SailfishOS Version', validators=[Optional(), Length(max=50)])
+    sailfish_version = SelectField('SailfishOS Version', choices=SFOS_VERSIONS, validators=[Optional()])
+    custom_sailfish_version = StringField('Custom SFOS Version', validators=[Optional(), Length(max=50)])
     app_version = StringField('App Version', validators=[Optional(), Length(max=50)])
 
     notes = TextAreaField('Notes / Details', validators=[Optional(), Length(max=2000)])

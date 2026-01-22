@@ -56,7 +56,6 @@
                             <tr>
                                 <th>App</th>
                                 <th>Status</th>
-                                <th>Rating</th>
                                 <th>Date</th>
                             </tr>
                         </thead>
@@ -82,13 +81,6 @@
                                     <span class="badge badge-no">No</span>
                                     {% else %}
                                     <span class="badge badge-unknown">Unknown</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if report.rating and report.rating|int > 0 %}
-                                    {{ report.rating }}/5
-                                    {% else %}
-                                    <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ report.created_at[:10] if report.created_at else '' }}</td>

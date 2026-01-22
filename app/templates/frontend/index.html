@@ -173,7 +173,6 @@
                         <div>
                             {% set rating_data = app_ratings.get(app.id, {}) %}
                             {% set community_status = rating_data.get('status') %}
-                            {% set community_rating = rating_data.get('rating', 0) %}
                             {% set report_count = rating_data.get('count', 0) %}
 
                             <span class="mr-2">Android Support:</span>
@@ -186,19 +185,6 @@
                             <span class="badge badge-no"><i class="fas fa-times" aria-hidden="true"></i> Does Not Work</span>
                             {% else %}
                             <span class="badge badge-unknown"><i class="fas fa-question" aria-hidden="true"></i> Unknown</span>
-                            {% endif %}
-
-                            {% if community_rating > 0 %}
-                            <span class="rating ml-2" role="img" aria-label="Rating: {{ community_rating }} out of 5 stars">
-                                {% for i in range(5) %}
-                                    {% if i < community_rating|round %}
-                                    <i class="fas fa-star" aria-hidden="true"></i>
-                                    {% else %}
-                                    <i class="fas fa-star empty" aria-hidden="true"></i>
-                                    {% endif %}
-                                {% endfor %}
-                                <small class="text-muted">({{ community_rating }})</small>
-                            </span>
                             {% endif %}
                         </div>
 

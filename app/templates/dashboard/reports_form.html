@@ -31,26 +31,12 @@
         <form method="POST">
             {{ form.hidden_tag() }}
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        {{ form.android_support_works.label(class="form-label") }}
-                        {{ form.android_support_works(class="form-control") }}
-                        {% if form.android_support_works.errors %}
-                        <div class="invalid-feedback d-block">{{ form.android_support_works.errors[0] }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="form-group">
-                        {{ form.rating.label(class="form-label") }}
-                        {{ form.rating(class="form-control") }}
-                        {% if form.rating.errors %}
-                        <div class="invalid-feedback d-block">{{ form.rating.errors[0] }}</div>
-                        {% endif %}
-                    </div>
-                </div>
+            <div class="form-group">
+                {{ form.android_support_works.label(class="form-label") }}
+                {{ form.android_support_works(class="form-control") }}
+                {% if form.android_support_works.errors %}
+                <div class="invalid-feedback d-block">{{ form.android_support_works.errors[0] }}</div>
+                {% endif %}
             </div>
 
             <div class="row">
@@ -84,7 +70,11 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         {{ form.sailfish_version.label(class="form-label") }}
-                        {{ form.sailfish_version(class="form-control", placeholder="e.g. 4.5.0") }}
+                        {{ form.sailfish_version(class="form-control", id="sfos-select") }}
+                    </div>
+                    <div class="form-group" id="custom-sfos-group" style="display: none;">
+                        <label class="form-label">Custom SFOS Version</label>
+                        {{ form.custom_sailfish_version(class="form-control", placeholder="e.g. 4.5.0.18") }}
                     </div>
                 </div>
 
@@ -135,6 +125,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     var deviceSelect = document.getElementById('device-select');
     var customDeviceGroup = document.getElementById('custom-device-group');
+    var sfosSelect = document.getElementById('sfos-select');
+    var customSfosGroup = document.getElementById('custom-sfos-group');
 
     if (deviceSelect && customDeviceGroup) {
         function toggleCustomDevice() {
@@ -150,6 +142,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Listen for changes
         deviceSelect.addEventListener('change', toggleCustomDevice);
+    }
+
+    if (sfosSelect && customSfosGroup) {
+        function toggleCustomSfos() {
+            if (sfosSelect.value === 'custom') {
+                customSfosGroup.style.display = 'block';
+            } else {
+                customSfosGroup.style.display = 'none';
+            }
+        }
+
+        // Initial check
+        toggleCustomSfos();
+
+        // Listen for changes
+        sfosSelect.addEventListener('change', toggleCustomSfos);
     }
 });
 </script>

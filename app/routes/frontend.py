@@ -182,11 +182,10 @@ def app_detail(app_id):
             'app_id': app_id,
             'reporter_name': form.reporter_name.data or 'Anonymous',
             'android_support_works': form.android_support_works.data,
-            'rating': int(form.rating.data),
             'dependency': form.dependency.data or None,
             'browser_works': form.browser_works.data or None,
             'device': form.custom_device.data if form.device.data == 'custom' else form.device.data,
-            'sailfish_version': form.sailfish_version.data,
+            'sailfish_version': form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data,
             'app_version': form.app_version.data,
             'notes': form.notes.data,
             'user_id': current_user.id if current_user.is_authenticated else None

@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from app import login_manager
 from app.models import DataManager, User
-from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm, SUPPORTED_DEVICES
+from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm, SUPPORTED_DEVICES, SFOS_VERSIONS
 from app.utils import fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
 from app.logs import LogManager
@@ -602,11 +602,10 @@ def reports_edit(report_id):
     if form.validate_on_submit():
         # Update report data
         report['android_support_works'] = form.android_support_works.data
-        report['rating'] = int(form.rating.data)
         report['dependency'] = form.dependency.data or None
         report['browser_works'] = form.browser_works.data or None
         report['device'] = form.custom_device.data if form.device.data == 'custom' else form.device.data
-        report['sailfish_version'] = form.sailfish_version.data
+        report['sailfish_version'] = form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data
         report['app_version'] = form.app_version.data
         report['notes'] = form.notes.data
 
@@ -630,7 +629,6 @@ def reports_edit(report_id):
 
     # Pre-populate form
     form.android_support_works.data = report.get('android_support_works', '')
-    form.rating.data = str(report.get('rating', ''))
     form.dependency.data = report.get('dependency', '')
     form.browser_works.data = report.get('browser_works', '')
     # Check if device is in the standard list or a custom one
@@ -643,7 +641,16 @@ def reports_edit(report_id):
         form.custom_device.data = stored_device
     else:
         form.device.data = ''
-    form.sailfish_version.data = report.get('sailfish_version', '')
+    # Check if SFOS version is in the standard list or a custom one
+    stored_sfos = report.get('sailfish_version', '')
+    standard_sfos = [v[0] for v in SFOS_VERSIONS if v[0] and v[0] != 'custom']
+    if stored_sfos in standard_sfos:
+        form.sailfish_version.data = stored_sfos
+    elif stored_sfos:
+        form.sailfish_version.data = 'custom'
+        form.custom_sailfish_version.data = stored_sfos
+    else:
+        form.sailfish_version.data = ''
     form.app_version.data = report.get('app_version', '')
     form.notes.data = report.get('notes', '')
 

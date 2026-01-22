@@ -107,40 +107,24 @@
                         {% endif %}
                     </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                {% if display_status == 'yes' %}
-                                <span class="badge badge-works badge-lg">
-                                    <i class="fas fa-check" aria-hidden="true"></i> Works
-                                </span>
-                                {% elif display_status == 'partial' %}
-                                <span class="badge badge-partial badge-lg">
-                                    <i class="fas fa-exclamation" aria-hidden="true"></i> Partial
-                                </span>
-                                {% elif display_status == 'no' %}
-                                <span class="badge badge-no badge-lg">
-                                    <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
-                                </span>
-                                {% else %}
-                                <span class="badge badge-unknown badge-lg">
-                                    <i class="fas fa-question" aria-hidden="true"></i> Unknown
-                                </span>
-                                {% endif %}
-                            </div>
-                            <div class="text-right">
-                                {% if community_rating > 0 %}
-                                <div class="rating rating-lg" role="img" aria-label="Community rating: {{ community_rating }} out of 5 stars">
-                                    {% for i in range(5) %}
-                                        {% if i < community_rating|round %}
-                                        <i class="fas fa-star" aria-hidden="true"></i>
-                                        {% else %}
-                                        <i class="fas fa-star empty" aria-hidden="true"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                <small class="text-muted">{{ community_rating }}/5 community rating</small>
-                                {% endif %}
-                            </div>
+                        <div class="mb-3">
+                            {% if display_status == 'yes' %}
+                            <span class="badge badge-works badge-lg">
+                                <i class="fas fa-check" aria-hidden="true"></i> Works
+                            </span>
+                            {% elif display_status == 'partial' %}
+                            <span class="badge badge-partial badge-lg">
+                                <i class="fas fa-exclamation" aria-hidden="true"></i> Partial
+                            </span>
+                            {% elif display_status == 'no' %}
+                            <span class="badge badge-no badge-lg">
+                                <i class="fas fa-times" aria-hidden="true"></i> Does Not Work
+                            </span>
+                            {% else %}
+                            <span class="badge badge-unknown badge-lg">
+                                <i class="fas fa-question" aria-hidden="true"></i> Unknown
+                            </span>
+                            {% endif %}
                         </div>
 
                         {% if app.android_support_notes %}
@@ -238,18 +222,6 @@
                                 {% else %}
                                 <span class="badge badge-unknown">Unknown</span>
                                 {% endif %}
-
-                                {% if report.rating > 0 %}
-                                <span class="rating ml-2" role="img" aria-label="Rating: {{ report.rating }} out of 5 stars">
-                                    {% for i in range(5) %}
-                                        {% if i < report.rating %}
-                                        <i class="fas fa-star" aria-hidden="true"></i>
-                                        {% else %}
-                                        <i class="fas fa-star empty" aria-hidden="true"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </span>
-                                {% endif %}
                             </div>
                         </div>
 
@@ -320,13 +292,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="rating"><i class="fas fa-star"></i> Rating</label>
-                                {{ form.rating(class="form-control") }}
-                            </div>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="device"><i class="fas fa-mobile-alt"></i> Device</label>
                                 {{ form.device(class="form-control", id="device-select") }}
@@ -336,10 +302,14 @@
                                 {{ form.custom_device(class="form-control", placeholder="Enter your device name") }}
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="sailfish_version"><i class="fas fa-ship"></i> SFOS Version</label>
-                                {{ form.sailfish_version(class="form-control", placeholder="e.g., 4.5.0") }}
+                                {{ form.sailfish_version(class="form-control", id="sfos-select") }}
+                            </div>
+                            <div class="form-group" id="custom-sfos-group" style="display: none;">
+                                <label for="custom_sailfish_version"><i class="fas fa-edit"></i> Custom Version</label>
+                                {{ form.custom_sailfish_version(class="form-control", placeholder="e.g., 4.5.0.18") }}
                             </div>
                         </div>
                     </div>
@@ -474,6 +444,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     var deviceSelect = document.getElementById('device-select');
     var customDeviceGroup = document.getElementById('custom-device-group');
+    var sfosSelect = document.getElementById('sfos-select');
+    var customSfosGroup = document.getElementById('custom-sfos-group');
 
     function toggleCustomDevice() {
         if (deviceSelect.value === 'custom') {
@@ -483,11 +455,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function toggleCustomSfos() {
+        if (sfosSelect.value === 'custom') {
+            customSfosGroup.style.display = 'block';
+        } else {
+            customSfosGroup.style.display = 'none';
+        }
+    }
+
     // Initial check
     toggleCustomDevice();
+    toggleCustomSfos();
 
     // Listen for changes
     deviceSelect.addEventListener('change', toggleCustomDevice);
+    sfosSelect.addEventListener('change', toggleCustomSfos);
 });
 </script>
 {% endblock %}
