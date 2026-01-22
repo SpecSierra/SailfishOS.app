@@ -67,7 +67,7 @@
 
                 <div class="card mb-3 {% if all_native_apps %}border-info{% else %}border-secondary{% endif %}">
                     <div class="card-header {% if all_native_apps %}bg-info text-white{% else %}bg-light{% endif %}">
-                        <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                        <img src="{{ url_for('static', filename='icons/sailfishos-mark.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                         Native App{% if all_native_apps|length > 1 %}s{% endif %}
                     </div>
                     <div class="card-body">
@@ -150,7 +150,7 @@
                             <div class="col-md-4 mb-3 mb-md-0">
                                 <div class="text-center p-3 border rounded h-100">
                                     <div class="mb-2">
-                                        <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon fa-2x" alt="" aria-hidden="true">
+                                        <img src="{{ url_for('static', filename='icons/sailfishos-mark.svg') }}" class="sfos-icon fa-2x" alt="" aria-hidden="true">
                                     </div>
                                     <h6>Native App</h6>
                                     {% set native = platform_ratings.native %}
@@ -376,7 +376,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="sailfish_version">
-                                    <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                                    <img src="{{ url_for('static', filename='icons/sailfishos-mark.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                                     SFOS Version
                                 </label>
                                 {{ form.sailfish_version(class="form-control", id="sfos-select") }}
@@ -390,7 +390,7 @@
 
                     <div class="form-group">
                         <label for="app_version">
-                            <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                            <img src="{{ url_for('static', filename='icons/sailfishos-mark.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                             App/Client Version (optional)
                         </label>
                         {{ form.app_version(class="form-control", placeholder="e.g., 2.23.10") }}
