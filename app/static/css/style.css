@@ -197,6 +197,11 @@ main {
     height: 1em;
 }
 
+.sfos-icon-half {
+    width: 0.5em;
+    height: 0.5em;
+}
+
 /* Status badges */
 .badge-works {
     background-color: #28a745;
