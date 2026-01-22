@@ -1,0 +1,129 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Edit Report - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-edit" aria-hidden="true"></i> Edit Report</h1>
+    <a href="{{ url_for('dashboard.reports_list') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Reports
+    </a>
+</div>
+
+{% if app %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">
+            {% if app.android_icon_url %}
+            <img src="{{ app.android_icon_url }}" alt="" style="width: 32px; height: 32px; border-radius: 4px;" class="mr-2">
+            {% endif %}
+            {{ app.android_name }}
+        </h5>
+        {% if app.android_package %}
+        <p class="card-text text-muted mb-0">{{ app.android_package }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.android_support_works.label(class="form-label") }}
+                        {{ form.android_support_works(class="form-control") }}
+                        {% if form.android_support_works.errors %}
+                        <div class="invalid-feedback d-block">{{ form.android_support_works.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.rating.label(class="form-label") }}
+                        {{ form.rating(class="form-control") }}
+                        {% if form.rating.errors %}
+                        <div class="invalid-feedback d-block">{{ form.rating.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.dependency.label(class="form-label") }}
+                        {{ form.dependency(class="form-control") }}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ form.browser_works.label(class="form-label") }}
+                        {{ form.browser_works(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {{ form.device.label(class="form-label") }}
+                        {{ form.device(class="form-control", placeholder="e.g. Xperia 10 III") }}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {{ form.sailfish_version.label(class="form-label") }}
+                        {{ form.sailfish_version(class="form-control", placeholder="e.g. 4.5.0") }}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {{ form.app_version.label(class="form-label") }}
+                        {{ form.app_version(class="form-control", placeholder="e.g. 1.2.3") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                {{ form.notes.label(class="form-label") }}
+                {{ form.notes(class="form-control", rows="4", placeholder="Any additional details about your experience...") }}
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save" aria-hidden="true"></i> Save Changes
+                </button>
+                <a href="{{ url_for('dashboard.reports_list') }}" class="btn btn-secondary ml-2">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="fas fa-info-circle" aria-hidden="true"></i> Report Info
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Report ID</dt>
+            <dd class="col-sm-9"><code>{{ report.id }}</code></dd>
+
+            <dt class="col-sm-3">Submitted</dt>
+            <dd class="col-sm-9">{{ report.created_at[:19].replace('T', ' ') if report.created_at else 'Unknown' }}</dd>
+
+            <dt class="col-sm-3">Reporter</dt>
+            <dd class="col-sm-9">{{ report.reporter_name or 'Anonymous' }}</dd>
+        </dl>
+    </div>
+</div>
+{% endblock %}

@@ -4,7 +4,14 @@
 
 {% block dashboard_content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Reports</h1>
+    <h1 class="h2">
+        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+        {% if has_permission(CAN_DELETE_REPORT) %}
+        All Reports
+        {% else %}
+        My Reports
+        {% endif %}
+    </h1>
 </div>
 
 {% if reports %}
@@ -74,7 +81,13 @@
                 </td>
                 <td>{{ report.created_at[:10] if report.created_at else '' }}</td>
                 <td>
-                    {% if has_permission(CAN_DELETE_REPORT) %}
+                    {% set is_own_report = report.user_id == current_user.id %}
+                    {% set can_manage = has_permission(CAN_DELETE_REPORT) %}
+
+                    {% if is_own_report or can_manage %}
+                    <a href="{{ url_for('dashboard.reports_edit', report_id=report.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Edit report">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </a>
                     <form method="POST" action="{{ url_for('dashboard.reports_delete', report_id=report.id) }}" class="d-inline delete-form" data-confirm="Are you sure you want to delete this report?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete report">
@@ -93,8 +106,16 @@
 {% else %}
 <div class="empty-state">
     <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+    {% if has_permission(CAN_DELETE_REPORT) %}
     <h4>No reports yet</h4>
     <p>Community reports will appear here once users submit them.</p>
+    {% else %}
+    <h4>No reports yet</h4>
+    <p>You haven't submitted any reports yet. Go to an app's detail page to submit your first report!</p>
+    <a href="{{ url_for('frontend.index') }}" class="btn btn-primary">
+        <i class="fas fa-search" aria-hidden="true"></i> Browse Apps
+    </a>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}

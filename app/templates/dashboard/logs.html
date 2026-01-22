@@ -17,6 +17,7 @@
                     <option value="app_edited" {% if request.args.get('action') == 'app_edited' %}selected{% endif %}>App Edited</option>
                     <option value="app_deleted" {% if request.args.get('action') == 'app_deleted' %}selected{% endif %}>App Deleted</option>
                     <option value="report_added" {% if request.args.get('action') == 'report_added' %}selected{% endif %}>Report Added</option>
+                    <option value="report_edited" {% if request.args.get('action') == 'report_edited' %}selected{% endif %}>Report Edited</option>
                     <option value="report_deleted" {% if request.args.get('action') == 'report_deleted' %}selected{% endif %}>Report Deleted</option>
                     <option value="user_created" {% if request.args.get('action') == 'user_created' %}selected{% endif %}>User Created</option>
                     <option value="user_role_changed" {% if request.args.get('action') == 'user_role_changed' %}selected{% endif %}>User Role Changed</option>
@@ -81,6 +82,7 @@
                                 'app_edited': 'warning',
                                 'app_deleted': 'danger',
                                 'report_added': 'success',
+                                'report_edited': 'warning',
                                 'report_deleted': 'danger',
                                 'user_created': 'success',
                                 'user_role_changed': 'warning',

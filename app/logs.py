@@ -16,6 +16,7 @@ class LogManager:
     ACTION_APP_EDITED = 'app_edited'
     ACTION_APP_DELETED = 'app_deleted'
     ACTION_REPORT_ADDED = 'report_added'
+    ACTION_REPORT_EDITED = 'report_edited'
     ACTION_REPORT_DELETED = 'report_deleted'
     ACTION_USER_CREATED = 'user_created'
     ACTION_USER_ROLE_CHANGED = 'user_role_changed'
@@ -148,6 +149,7 @@ class LogManager:
             cls.ACTION_APP_EDITED: 'App Edited',
             cls.ACTION_APP_DELETED: 'App Deleted',
             cls.ACTION_REPORT_ADDED: 'Report Added',
+            cls.ACTION_REPORT_EDITED: 'Report Edited',
             cls.ACTION_REPORT_DELETED: 'Report Deleted',
             cls.ACTION_USER_CREATED: 'User Created',
             cls.ACTION_USER_ROLE_CHANGED: 'User Role Changed',

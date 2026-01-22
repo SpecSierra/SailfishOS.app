@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from app import login_manager
 from app.models import DataManager, User
-from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm
+from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm
 from app.utils import fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
 from app.logs import LogManager
@@ -174,6 +174,7 @@ def profile_delete():
 
 @dashboard_bp.route('/apps')
 @login_required
+@check_not_banned
 def apps_list():
     apps = DataManager.get_apps()
     categories = DataManager.get_categories()
@@ -510,10 +511,17 @@ def categories_delete(slug):
 
 @dashboard_bp.route('/reports')
 @login_required
+@check_not_banned
 def reports_list():
     reports = DataManager.get_reports()
     apps = DataManager.get_apps()
     app_map = {app['id']: app for app in apps}
+
+    # Regular users only see their own reports
+    # Moderators and admins see all reports
+    if not check_permission(current_user, CAN_DELETE_REPORT):
+        reports = [r for r in reports if r.get('user_id') == current_user.id]
+
     reports = sorted(reports, key=lambda r: r.get('created_at', ''), reverse=True)
     return render_template('dashboard/reports_list.html', reports=reports, app_map=app_map)
 
@@ -521,7 +529,6 @@ def reports_list():
 @dashboard_bp.route('/reports/delete/<report_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@has_permission(CAN_DELETE_REPORT)
 def reports_delete(report_id):
     # Get report data before deletion for logging
     reports = DataManager.get_reports()
@@ -529,6 +536,14 @@ def reports_delete(report_id):
 
     if not report:
         flash('Report not found.', 'danger')
+        return redirect(url_for('dashboard.reports_list'))
+
+    # Check permission: user can delete own reports, moderators+ can delete any
+    is_own_report = report.get('user_id') == current_user.id
+    can_delete_any = check_permission(current_user, CAN_DELETE_REPORT)
+
+    if not is_own_report and not can_delete_any:
+        flash('You do not have permission to delete this report.', 'danger')
         return redirect(url_for('dashboard.reports_list'))
 
     old_report_data = dict(report)
@@ -550,6 +565,76 @@ def reports_delete(report_id):
     else:
         flash('Report not found.', 'danger')
     return redirect(url_for('dashboard.reports_list'))
+
+
+@dashboard_bp.route('/reports/edit/<report_id>', methods=['GET', 'POST'])
+@login_required
+@check_not_banned
+def reports_edit(report_id):
+    """Edit a report - users can edit their own reports."""
+    reports = DataManager.get_reports()
+    report = next((r for r in reports if r.get('id') == report_id), None)
+
+    if not report:
+        flash('Report not found.', 'danger')
+        return redirect(url_for('dashboard.reports_list'))
+
+    # Check permission: user can edit own reports, moderators+ can edit any
+    is_own_report = report.get('user_id') == current_user.id
+    can_edit_any = check_permission(current_user, CAN_DELETE_REPORT)
+
+    if not is_own_report and not can_edit_any:
+        flash('You do not have permission to edit this report.', 'danger')
+        return redirect(url_for('dashboard.reports_list'))
+
+    # Store old data for logging
+    old_report_data = dict(report)
+
+    # Get app info for display
+    app = DataManager.get_app_by_id(report.get('app_id'))
+
+    form = ReportForm()
+
+    if form.validate_on_submit():
+        # Update report data
+        report['android_support_works'] = form.android_support_works.data
+        report['rating'] = int(form.rating.data)
+        report['dependency'] = form.dependency.data or None
+        report['browser_works'] = form.browser_works.data or None
+        report['device'] = form.device.data
+        report['sailfish_version'] = form.sailfish_version.data
+        report['app_version'] = form.app_version.data
+        report['notes'] = form.notes.data
+
+        # Save updated reports
+        DataManager.save_reports(reports)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_REPORT_EDITED,
+            entity_type='report',
+            entity_id=report_id,
+            old_data=old_report_data,
+            new_data=report,
+            description=f'Edited report for app {report.get("app_id", "unknown")}'
+        )
+
+        flash('Report updated successfully.', 'success')
+        return redirect(url_for('dashboard.reports_list'))
+
+    # Pre-populate form
+    form.android_support_works.data = report.get('android_support_works', '')
+    form.rating.data = str(report.get('rating', ''))
+    form.dependency.data = report.get('dependency', '')
+    form.browser_works.data = report.get('browser_works', '')
+    form.device.data = report.get('device', '')
+    form.sailfish_version.data = report.get('sailfish_version', '')
+    form.app_version.data = report.get('app_version', '')
+    form.notes.data = report.get('notes', '')
+
+    return render_template('dashboard/reports_form.html', form=form, report=report, app=app)
 
 
 @dashboard_bp.route('/apps/fetch-info/<app_id>', methods=['POST'])

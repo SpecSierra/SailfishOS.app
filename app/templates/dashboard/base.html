@@ -11,8 +11,8 @@
         <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar" id="dashboardSidebar" role="navigation" aria-label="Dashboard navigation">
             <div class="position-sticky">
-                <!-- User info with role badge -->
-                <div class="px-3 py-2 mb-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <!-- User info with role badge - clickable to profile -->
+                <a href="{{ url_for('dashboard.profile') }}" class="d-block px-3 py-2 mb-2 text-decoration-none {% if request.endpoint == 'dashboard.profile' %}active{% endif %}" style="border-bottom: 1px solid rgba(255,255,255,0.1); color: inherit;">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-user-circle mr-2" aria-hidden="true"></i>
                         <span class="font-weight-bold">{{ current_user.username }}</span>
@@ -20,14 +20,16 @@
                     <span class="badge {{ get_role_badge_class(current_user.role) }} mt-1">
                         {{ get_role_display_name(current_user.role) }}
                     </span>
-                </div>
+                </a>
 
                 <ul class="nav flex-column">
+                    {% if has_permission(CAN_MANAGE_USERS) or has_permission(CAN_VIEW_LOGS) %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
                             <i class="fas fa-tachometer-alt" aria-hidden="true"></i> Dashboard
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'apps' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.apps_list') }}">
                             <i class="fas fa-mobile-alt" aria-hidden="true"></i> Apps
@@ -59,26 +61,6 @@
                         </a>
                     </li>
                     {% endif %}
-                </ul>
-
-                <hr class="my-3" style="border-color: rgba(255,255,255,0.1);">
-
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'dashboard.profile' %}active{% endif %}" href="{{ url_for('dashboard.profile') }}">
-                            <i class="fas fa-user" aria-hidden="true"></i> My Profile
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('frontend.index') }}">
-                            <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Site
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard.logout') }}">
-                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
-                        </a>
-                    </li>
                 </ul>
             </div>
         </nav>
