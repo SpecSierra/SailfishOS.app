@@ -4,6 +4,7 @@ from flask_login import current_user
 from app.models import DataManager
 from app.forms import SearchForm, ReportForm, AppSubmitForm
 from app.utils import fetch_and_update_app_info
+from app.logs import LogManager
 from config import Config
 
 frontend_bp = Blueprint('frontend', __name__)
@@ -191,7 +192,20 @@ def app_detail(app_id):
             'user_id': current_user.id if current_user.is_authenticated else None
         }
 
-        DataManager.add_report(report_data)
+        new_report = DataManager.add_report(report_data)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id if current_user.is_authenticated else None,
+            username=current_user.username if current_user.is_authenticated else report_data.get('reporter_name', 'Anonymous'),
+            action=LogManager.ACTION_REPORT_ADDED,
+            entity_type='report',
+            entity_id=new_report.get('id'),
+            old_data=None,
+            new_data=new_report,
+            description=f'Report submitted for app {app_id}'
+        )
+
         flash('Thank you! Your report has been submitted.', 'success')
         return redirect(url_for('frontend.app_detail', app_id=app_id))
 

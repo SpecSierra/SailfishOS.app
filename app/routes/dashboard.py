@@ -7,6 +7,14 @@ from app.models import DataManager, User
 from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm
 from app.utils import fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
+from app.logs import LogManager
+from app.permissions import (
+    has_permission, check_permission,
+    CAN_ADD_APP, CAN_EDIT_APP, CAN_DELETE_APP,
+    CAN_ADD_REPORT, CAN_DELETE_REPORT,
+    CAN_MANAGE_USERS, CAN_MANAGE_CATEGORIES,
+    CAN_REFRESH_PLAYSTORE, CAN_VIEW_LOGS, CAN_ROLLBACK
+)
 
 
 def verify_hcaptcha(response_token):
@@ -87,6 +95,18 @@ def register():
             role='user'
         )
 
+        # Log the action (user self-registration)
+        LogManager.log_action(
+            user_id=user.id,
+            username=user.username,
+            action=LogManager.ACTION_USER_CREATED,
+            entity_type='user',
+            entity_id=user.id,
+            old_data=None,
+            new_data={'username': user.username, 'role': user.role},
+            description=f'User self-registered: {user.username}'
+        )
+
         flash('Registration successful! You can now log in.', 'success')
         return redirect(url_for('dashboard.login'))
 
@@ -163,6 +183,8 @@ def apps_list():
 
 @dashboard_bp.route('/apps/add', methods=['GET', 'POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_ADD_APP)
 def apps_add():
     categories = DataManager.get_categories()
     form = AppForm()
@@ -207,7 +229,20 @@ def apps_add():
             'browser_notes': form.browser_notes.data,
             'reports_count': 0
         }
-        DataManager.add_app(app_data)
+        new_app = DataManager.add_app(app_data)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_APP_ADDED,
+            entity_type='app',
+            entity_id=new_app.get('id'),
+            old_data=None,
+            new_data=new_app,
+            description=f'Added app: {new_app.get("android_name")}'
+        )
+
         flash('App added successfully.', 'success')
         return redirect(url_for('dashboard.apps_list'))
 
@@ -216,11 +251,16 @@ def apps_add():
 
 @dashboard_bp.route('/apps/edit/<app_id>', methods=['GET', 'POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_EDIT_APP)
 def apps_edit(app_id):
     app = DataManager.get_app_by_id(app_id)
     if not app:
         flash('App not found.', 'danger')
         return redirect(url_for('dashboard.apps_list'))
+
+    # Store old data for logging
+    old_app_data = dict(app)
 
     categories = DataManager.get_categories()
     form = AppForm()
@@ -259,7 +299,20 @@ def apps_edit(app_id):
             'browser_notes': form.browser_notes.data,
             'reports_count': app.get('reports_count', 0)
         }
-        DataManager.update_app(app_id, app_data)
+        updated_app = DataManager.update_app(app_id, app_data)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_APP_EDITED,
+            entity_type='app',
+            entity_id=app_id,
+            old_data=old_app_data,
+            new_data=updated_app,
+            description=f'Edited app: {updated_app.get("android_name")}'
+        )
+
         flash('App updated successfully.', 'success')
         return redirect(url_for('dashboard.apps_list'))
 
@@ -301,15 +354,37 @@ def apps_edit(app_id):
 @dashboard_bp.route('/apps/delete/<app_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@admin_required
+@has_permission(CAN_DELETE_APP)
 def apps_delete(app_id):
+    # Get app data before deletion for logging
+    app = DataManager.get_app_by_id(app_id)
+    if not app:
+        flash('App not found.', 'danger')
+        return redirect(url_for('dashboard.apps_list'))
+
+    old_app_data = dict(app)
     DataManager.delete_app(app_id)
+
+    # Log the action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=LogManager.ACTION_APP_DELETED,
+        entity_type='app',
+        entity_id=app_id,
+        old_data=old_app_data,
+        new_data=None,
+        description=f'Deleted app: {old_app_data.get("android_name")}'
+    )
+
     flash('App deleted successfully.', 'success')
     return redirect(url_for('dashboard.apps_list'))
 
 
 @dashboard_bp.route('/categories')
 @login_required
+@check_not_banned
+@has_permission(CAN_MANAGE_CATEGORIES)
 def categories_list():
     categories = DataManager.get_categories()
     return render_template('dashboard/categories_list.html', categories=categories)
@@ -317,17 +392,33 @@ def categories_list():
 
 @dashboard_bp.route('/categories/add', methods=['GET', 'POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_MANAGE_CATEGORIES)
 def categories_add():
     form = CategoryForm()
 
     if form.validate_on_submit():
         categories = DataManager.get_categories()
-        categories.append({
+        new_category = {
             'name': form.name.data,
             'slug': form.slug.data,
             'icon': form.icon.data or 'fa-mobile-alt'
-        })
+        }
+        categories.append(new_category)
         DataManager.save_categories(categories)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_CATEGORY_ADDED,
+            entity_type='category',
+            entity_id=new_category['slug'],
+            old_data=None,
+            new_data=new_category,
+            description=f'Added category: {new_category["name"]}'
+        )
+
         flash('Category added successfully.', 'success')
         return redirect(url_for('dashboard.categories_list'))
 
@@ -336,6 +427,8 @@ def categories_add():
 
 @dashboard_bp.route('/categories/edit/<slug>', methods=['GET', 'POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_MANAGE_CATEGORIES)
 def categories_edit(slug):
     categories = DataManager.get_categories()
     category = next((c for c in categories if c['slug'] == slug), None)
@@ -344,18 +437,35 @@ def categories_edit(slug):
         flash('Category not found.', 'danger')
         return redirect(url_for('dashboard.categories_list'))
 
+    # Store old data for logging
+    old_category_data = dict(category)
+
     form = CategoryForm()
 
     if form.validate_on_submit():
+        new_category_data = {
+            'name': form.name.data,
+            'slug': form.slug.data,
+            'icon': form.icon.data or 'fa-mobile-alt'
+        }
         for i, c in enumerate(categories):
             if c['slug'] == slug:
-                categories[i] = {
-                    'name': form.name.data,
-                    'slug': form.slug.data,
-                    'icon': form.icon.data or 'fa-mobile-alt'
-                }
+                categories[i] = new_category_data
                 break
         DataManager.save_categories(categories)
+
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_CATEGORY_EDITED,
+            entity_type='category',
+            entity_id=slug,
+            old_data=old_category_data,
+            new_data=new_category_data,
+            description=f'Edited category: {new_category_data["name"]}'
+        )
+
         flash('Category updated successfully.', 'success')
         return redirect(url_for('dashboard.categories_list'))
 
@@ -368,10 +478,32 @@ def categories_edit(slug):
 
 @dashboard_bp.route('/categories/delete/<slug>', methods=['POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_MANAGE_CATEGORIES)
 def categories_delete(slug):
     categories = DataManager.get_categories()
+    category = next((c for c in categories if c['slug'] == slug), None)
+
+    if not category:
+        flash('Category not found.', 'danger')
+        return redirect(url_for('dashboard.categories_list'))
+
+    old_category_data = dict(category)
     categories = [c for c in categories if c['slug'] != slug]
     DataManager.save_categories(categories)
+
+    # Log the action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=LogManager.ACTION_CATEGORY_DELETED,
+        entity_type='category',
+        entity_id=slug,
+        old_data=old_category_data,
+        new_data=None,
+        description=f'Deleted category: {old_category_data["name"]}'
+    )
+
     flash('Category deleted successfully.', 'success')
     return redirect(url_for('dashboard.categories_list'))
 
@@ -389,10 +521,31 @@ def reports_list():
 @dashboard_bp.route('/reports/delete/<report_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@moderator_required
+@has_permission(CAN_DELETE_REPORT)
 def reports_delete(report_id):
+    # Get report data before deletion for logging
+    reports = DataManager.get_reports()
+    report = next((r for r in reports if r.get('id') == report_id), None)
+
+    if not report:
+        flash('Report not found.', 'danger')
+        return redirect(url_for('dashboard.reports_list'))
+
+    old_report_data = dict(report)
     deleted = DataManager.delete_report(report_id)
+
     if deleted:
+        # Log the action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_REPORT_DELETED,
+            entity_type='report',
+            entity_id=report_id,
+            old_data=old_report_data,
+            new_data=None,
+            description=f'Deleted report for app {old_report_data.get("app_id", "unknown")}'
+        )
         flash('Report deleted successfully.', 'success')
     else:
         flash('Report not found.', 'danger')
@@ -401,6 +554,8 @@ def reports_delete(report_id):
 
 @dashboard_bp.route('/apps/fetch-info/<app_id>', methods=['POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_REFRESH_PLAYSTORE)
 def fetch_app_info(app_id):
     """Fetch icon and description for a single app from Play Store."""
     app = DataManager.get_app_by_id(app_id)
@@ -461,6 +616,8 @@ def fetch_app_info(app_id):
 
 @dashboard_bp.route('/apps/fetch-all-info', methods=['POST'])
 @login_required
+@check_not_banned
+@has_permission(CAN_REFRESH_PLAYSTORE)
 def fetch_all_info():
     """Fetch icons and descriptions for all apps from Play Store."""
     apps = DataManager.get_apps()
@@ -534,17 +691,30 @@ def fetch_all_info():
 @dashboard_bp.route('/users')
 @login_required
 @check_not_banned
-@admin_required
+@has_permission(CAN_MANAGE_USERS)
 def users_list():
     """Admin view to manage users."""
     users = DataManager.get_users()
+
+    # Apply role filter
+    role_filter = request.args.get('role', '')
+    if role_filter and role_filter in ('user', 'moderator', 'admin'):
+        users = [u for u in users if u.role == role_filter]
+
+    # Apply status filter
+    status_filter = request.args.get('status', '')
+    if status_filter == 'active':
+        users = [u for u in users if not u.is_banned]
+    elif status_filter == 'banned':
+        users = [u for u in users if u.is_banned]
+
     return render_template('dashboard/users_list.html', users=users)
 
 
 @dashboard_bp.route('/users/ban/<user_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@admin_required
+@has_permission(CAN_MANAGE_USERS)
 def users_ban(user_id):
     """Ban a user."""
     user = DataManager.get_user_by_id(user_id)
@@ -561,6 +731,19 @@ def users_ban(user_id):
         return redirect(url_for('dashboard.users_list'))
 
     DataManager.update_user(user_id, is_banned=True)
+
+    # Log the action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=LogManager.ACTION_USER_BANNED,
+        entity_type='user',
+        entity_id=user_id,
+        old_data={'username': user.username, 'is_banned': False},
+        new_data={'username': user.username, 'is_banned': True},
+        description=f'Banned user: {user.username}'
+    )
+
     flash(f'User {user.username} has been banned.', 'success')
     return redirect(url_for('dashboard.users_list'))
 
@@ -568,7 +751,7 @@ def users_ban(user_id):
 @dashboard_bp.route('/users/unban/<user_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@admin_required
+@has_permission(CAN_MANAGE_USERS)
 def users_unban(user_id):
     """Unban a user."""
     user = DataManager.get_user_by_id(user_id)
@@ -577,6 +760,19 @@ def users_unban(user_id):
         return redirect(url_for('dashboard.users_list'))
 
     DataManager.update_user(user_id, is_banned=False)
+
+    # Log the action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=LogManager.ACTION_USER_UNBANNED,
+        entity_type='user',
+        entity_id=user_id,
+        old_data={'username': user.username, 'is_banned': True},
+        new_data={'username': user.username, 'is_banned': False},
+        description=f'Unbanned user: {user.username}'
+    )
+
     flash(f'User {user.username} has been unbanned.', 'success')
     return redirect(url_for('dashboard.users_list'))
 
@@ -584,7 +780,7 @@ def users_unban(user_id):
 @dashboard_bp.route('/users/set-role/<user_id>', methods=['POST'])
 @login_required
 @check_not_banned
-@admin_required
+@has_permission(CAN_MANAGE_USERS)
 def users_set_role(user_id):
     """Change user role."""
     user = DataManager.get_user_by_id(user_id)
@@ -601,6 +797,138 @@ def users_set_role(user_id):
         flash('Invalid role.', 'danger')
         return redirect(url_for('dashboard.users_list'))
 
+    old_role = user.role
     DataManager.update_user(user_id, role=new_role)
+
+    # Log the role change
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action=LogManager.ACTION_USER_ROLE_CHANGED,
+        entity_type='user',
+        entity_id=user_id,
+        old_data={'username': user.username, 'role': old_role},
+        new_data={'username': user.username, 'role': new_role},
+        description=f'Changed role from {old_role} to {new_role}'
+    )
+
     flash(f'User {user.username} role changed to {new_role}.', 'success')
     return redirect(url_for('dashboard.users_list'))
+
+
+# ============ Audit Logs (Admin Only) ============
+
+@dashboard_bp.route('/logs')
+@login_required
+@check_not_banned
+@has_permission(CAN_VIEW_LOGS)
+def logs_list():
+    """View audit logs."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    action_filter = request.args.get('action', '')
+    entity_type_filter = request.args.get('entity_type', '')
+
+    logs, total = LogManager.get_logs(
+        limit=per_page,
+        offset=(page - 1) * per_page,
+        action_filter=action_filter if action_filter else None,
+        entity_type_filter=entity_type_filter if entity_type_filter else None
+    )
+
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template(
+        'dashboard/logs.html',
+        logs=logs,
+        page=page,
+        total_pages=total_pages,
+        total=total
+    )
+
+
+@dashboard_bp.route('/logs/rollback/<log_id>', methods=['POST'])
+@login_required
+@check_not_banned
+@has_permission(CAN_ROLLBACK)
+def logs_rollback(log_id):
+    """Rollback an action."""
+    log = LogManager.get_log_by_id(log_id)
+    if not log:
+        flash('Log entry not found.', 'danger')
+        return redirect(url_for('dashboard.logs_list'))
+
+    if log.get('rolled_back'):
+        flash('This action has already been rolled back.', 'warning')
+        return redirect(url_for('dashboard.logs_list'))
+
+    action = log.get('action')
+    entity_type = log.get('entity_type')
+    entity_id = log.get('entity_id')
+    old_data = log.get('old_data')
+
+    success = False
+
+    # Handle rollback based on action type
+    if action == LogManager.ACTION_APP_EDITED and old_data:
+        # Restore previous app state
+        DataManager.update_app(entity_id, old_data)
+        success = True
+
+    elif action == LogManager.ACTION_APP_DELETED and old_data:
+        # Restore deleted app
+        apps = DataManager.get_apps()
+        old_data['id'] = entity_id
+        apps.append(old_data)
+        DataManager.save_apps(apps)
+        success = True
+
+    elif action == LogManager.ACTION_REPORT_DELETED and old_data:
+        # Restore deleted report
+        reports = DataManager.get_reports()
+        old_data['id'] = entity_id
+        reports.append(old_data)
+        DataManager.save_reports(reports)
+        # Increment app reports count
+        if old_data.get('app_id'):
+            DataManager._increment_app_reports_count(old_data['app_id'])
+        success = True
+
+    elif action == LogManager.ACTION_CATEGORY_EDITED and old_data:
+        # Restore previous category state
+        categories = DataManager.get_categories()
+        for i, c in enumerate(categories):
+            if c.get('slug') == entity_id or c.get('slug') == old_data.get('slug'):
+                categories[i] = old_data
+                break
+        DataManager.save_categories(categories)
+        success = True
+
+    elif action == LogManager.ACTION_CATEGORY_DELETED and old_data:
+        # Restore deleted category
+        categories = DataManager.get_categories()
+        categories.append(old_data)
+        DataManager.save_categories(categories)
+        success = True
+
+    if success:
+        # Mark as rolled back
+        LogManager.mark_as_rolled_back(log_id, current_user.id, current_user.username)
+
+        # Log the rollback action
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action=LogManager.ACTION_ROLLBACK,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            old_data=None,
+            new_data=old_data,
+            description=f'Rolled back {action} for {entity_type}'
+        )
+
+        flash('Action has been rolled back successfully.', 'success')
+    else:
+        flash('This action cannot be rolled back.', 'danger')
+
+    return redirect(url_for('dashboard.logs_list'))

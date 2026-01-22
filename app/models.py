@@ -30,6 +30,37 @@ class User(UserMixin):
     def hash_password(password):
         return ph.hash(password)
 
+    def has_permission(self, permission):
+        """Check if user has a specific permission."""
+        from app.permissions import check_permission
+        return check_permission(self, permission)
+
+    def has_any_permission(self, *permissions):
+        """Check if user has any of the specified permissions."""
+        from app.permissions import check_permission
+        return any(check_permission(self, p) for p in permissions)
+
+    def has_all_permissions(self, *permissions):
+        """Check if user has all specified permissions."""
+        from app.permissions import check_permission
+        return all(check_permission(self, p) for p in permissions)
+
+    @property
+    def is_admin(self):
+        """Check if user is an admin."""
+        return self.role == 'admin'
+
+    @property
+    def is_moderator(self):
+        """Check if user is a moderator or higher."""
+        return self.role in ('admin', 'moderator')
+
+    @property
+    def role_level(self):
+        """Get the numeric level for this user's role."""
+        from app.permissions import get_role_level
+        return get_role_level(self.role)
+
     def to_dict(self):
         return {
             'id': self.id,

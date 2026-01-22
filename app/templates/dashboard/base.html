@@ -11,6 +11,17 @@
         <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar" id="dashboardSidebar" role="navigation" aria-label="Dashboard navigation">
             <div class="position-sticky">
+                <!-- User info with role badge -->
+                <div class="px-3 py-2 mb-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-circle mr-2" aria-hidden="true"></i>
+                        <span class="font-weight-bold">{{ current_user.username }}</span>
+                    </div>
+                    <span class="badge {{ get_role_badge_class(current_user.role) }} mt-1">
+                        {{ get_role_display_name(current_user.role) }}
+                    </span>
+                </div>
+
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
@@ -22,20 +33,29 @@
                             <i class="fas fa-mobile-alt" aria-hidden="true"></i> Apps
                         </a>
                     </li>
+                    {% if has_permission(CAN_MANAGE_CATEGORIES) %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'categories' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.categories_list') }}">
                             <i class="fas fa-tags" aria-hidden="true"></i> Categories
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.reports_list') }}">
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i> Reports
                         </a>
                     </li>
-                    {% if current_user.role == 'admin' %}
+                    {% if has_permission(CAN_MANAGE_USERS) %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'users' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.users_list') }}">
                             <i class="fas fa-users" aria-hidden="true"></i> Users
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if has_permission(CAN_VIEW_LOGS) %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'logs' in request.endpoint %}active{% endif %}" href="{{ url_for('dashboard.logs_list') }}">
+                            <i class="fas fa-history" aria-hidden="true"></i> Logs
                         </a>
                     </li>
                     {% endif %}

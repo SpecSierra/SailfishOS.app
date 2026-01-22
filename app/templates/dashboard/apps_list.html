@@ -6,6 +6,7 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-mobile-alt" aria-hidden="true"></i> Apps</h1>
     <div>
+        {% if has_permission(CAN_REFRESH_PLAYSTORE) %}
         <form method="POST" action="{{ url_for('dashboard.fetch_all_info') }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-info mr-1" title="Fetch missing icons and descriptions from Play Store">
@@ -19,9 +20,12 @@
                 <i class="fas fa-sync-alt" aria-hidden="true"></i> Full Refresh All
             </button>
         </form>
+        {% endif %}
+        {% if has_permission(CAN_ADD_APP) %}
         <a href="{{ url_for('dashboard.apps_add') }}" class="btn btn-primary">
             <i class="fas fa-plus" aria-hidden="true"></i> Add App
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -77,15 +81,22 @@
                 </td>
                 <td>{{ app.reports_count or 0 }}</td>
                 <td>
+                    {% if has_permission(CAN_EDIT_APP) %}
                     <a href="{{ url_for('dashboard.apps_edit', app_id=app.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Edit {{ app.android_name }}">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </a>
+                    {% endif %}
+                    {% if has_permission(CAN_DELETE_APP) %}
                     <form method="POST" action="{{ url_for('dashboard.apps_delete', app_id=app.id) }}" class="d-inline delete-form" data-confirm="Are you sure you want to delete this app?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete {{ app.android_name }}">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </form>
+                    {% endif %}
+                    {% if not has_permission(CAN_EDIT_APP) and not has_permission(CAN_DELETE_APP) %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -96,10 +107,14 @@
 <div class="empty-state">
     <i class="fas fa-mobile-alt" aria-hidden="true"></i>
     <h4>No apps yet</h4>
+    {% if has_permission(CAN_ADD_APP) %}
     <p>Start by adding your first app to the database.</p>
     <a href="{{ url_for('dashboard.apps_add') }}" class="btn btn-primary">
         <i class="fas fa-plus" aria-hidden="true"></i> Add App
     </a>
+    {% else %}
+    <p>No apps have been added to the database yet.</p>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}

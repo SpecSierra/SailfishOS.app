@@ -1,0 +1,231 @@
+{% extends "dashboard/base.html" %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-history" aria-hidden="true"></i> Audit Logs</h1>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="action" class="form-label">Action Type</label>
+                <select class="form-control" id="action" name="action">
+                    <option value="">All Actions</option>
+                    <option value="app_added" {% if request.args.get('action') == 'app_added' %}selected{% endif %}>App Added</option>
+                    <option value="app_edited" {% if request.args.get('action') == 'app_edited' %}selected{% endif %}>App Edited</option>
+                    <option value="app_deleted" {% if request.args.get('action') == 'app_deleted' %}selected{% endif %}>App Deleted</option>
+                    <option value="report_added" {% if request.args.get('action') == 'report_added' %}selected{% endif %}>Report Added</option>
+                    <option value="report_deleted" {% if request.args.get('action') == 'report_deleted' %}selected{% endif %}>Report Deleted</option>
+                    <option value="user_created" {% if request.args.get('action') == 'user_created' %}selected{% endif %}>User Created</option>
+                    <option value="user_role_changed" {% if request.args.get('action') == 'user_role_changed' %}selected{% endif %}>User Role Changed</option>
+                    <option value="user_banned" {% if request.args.get('action') == 'user_banned' %}selected{% endif %}>User Banned</option>
+                    <option value="user_unbanned" {% if request.args.get('action') == 'user_unbanned' %}selected{% endif %}>User Unbanned</option>
+                    <option value="category_added" {% if request.args.get('action') == 'category_added' %}selected{% endif %}>Category Added</option>
+                    <option value="category_edited" {% if request.args.get('action') == 'category_edited' %}selected{% endif %}>Category Edited</option>
+                    <option value="category_deleted" {% if request.args.get('action') == 'category_deleted' %}selected{% endif %}>Category Deleted</option>
+                    <option value="rollback" {% if request.args.get('action') == 'rollback' %}selected{% endif %}>Rollback</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="entity_type" class="form-label">Entity Type</label>
+                <select class="form-control" id="entity_type" name="entity_type">
+                    <option value="">All Types</option>
+                    <option value="app" {% if request.args.get('entity_type') == 'app' %}selected{% endif %}>App</option>
+                    <option value="report" {% if request.args.get('entity_type') == 'report' %}selected{% endif %}>Report</option>
+                    <option value="user" {% if request.args.get('entity_type') == 'user' %}selected{% endif %}>User</option>
+                    <option value="category" {% if request.args.get('entity_type') == 'category' %}selected{% endif %}>Category</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter" aria-hidden="true"></i> Filter
+                </button>
+                <a href="{{ url_for('dashboard.logs_list') }}" class="btn btn-secondary ml-2">
+                    <i class="fas fa-times" aria-hidden="true"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Logs table -->
+<div class="card">
+    <div class="card-body">
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">Timestamp</th>
+                        <th style="width: 120px;">User</th>
+                        <th style="width: 140px;">Action</th>
+                        <th>Entity</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr{% if log.rolled_back %} class="table-secondary"{% endif %}>
+                        <td>
+                            <small>{{ log.timestamp[:19].replace('T', ' ') }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ log.username }}</span>
+                        </td>
+                        <td>
+                            {% set action_colors = {
+                                'app_added': 'success',
+                                'app_edited': 'warning',
+                                'app_deleted': 'danger',
+                                'report_added': 'success',
+                                'report_deleted': 'danger',
+                                'user_created': 'success',
+                                'user_role_changed': 'warning',
+                                'user_banned': 'danger',
+                                'user_unbanned': 'success',
+                                'category_added': 'success',
+                                'category_edited': 'warning',
+                                'category_deleted': 'danger',
+                                'rollback': 'info'
+                            } %}
+                            <span class="badge badge-{{ action_colors.get(log.action, 'secondary') }}">
+                                {{ log.action | replace('_', ' ') | title }}
+                            </span>
+                        </td>
+                        <td>
+                            <i class="fas {{ log.entity_type | get_entity_icon }}" aria-hidden="true"></i>
+                            {% if log.entity_type == 'app' and log.new_data %}
+                                {{ log.new_data.android_name or log.old_data.android_name or 'Unknown App' }}
+                            {% elif log.entity_type == 'app' and log.old_data %}
+                                {{ log.old_data.android_name or 'Unknown App' }}
+                            {% elif log.entity_type == 'user' and log.new_data %}
+                                {{ log.new_data.username or log.old_data.username or 'Unknown User' }}
+                            {% elif log.entity_type == 'user' and log.old_data %}
+                                {{ log.old_data.username or 'Unknown User' }}
+                            {% elif log.entity_type == 'category' and log.new_data %}
+                                {{ log.new_data.name or log.old_data.name or 'Unknown Category' }}
+                            {% elif log.entity_type == 'category' and log.old_data %}
+                                {{ log.old_data.name or 'Unknown Category' }}
+                            {% elif log.entity_type == 'report' and log.old_data %}
+                                Report for {{ log.old_data.app_id[:8] if log.old_data.app_id else 'Unknown' }}...
+                            {% else %}
+                                {{ log.entity_id[:8] if log.entity_id else 'N/A' }}...
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.rolled_back %}
+                                <span class="badge badge-secondary" title="Rolled back by {{ log.rolled_back_by_username }} at {{ log.rolled_back_at }}">
+                                    <i class="fas fa-undo" aria-hidden="true"></i> Rolled Back
+                                </span>
+                            {% else %}
+                                <span class="badge badge-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#logModal{{ loop.index }}">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                            {% if not log.rolled_back and log.action in ['app_edited', 'app_deleted', 'report_deleted', 'category_edited', 'category_deleted'] %}
+                            <form action="{{ url_for('dashboard.logs_rollback', log_id=log.id) }}" method="post" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to rollback this action?');">
+                                    <i class="fas fa-undo" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Log navigation">
+            <ul class="pagination justify-content-center">
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard.logs_list', page=p, action=request.args.get('action', ''), entity_type=request.args.get('entity_type', '')) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-history fa-3x text-muted mb-3" aria-hidden="true"></i>
+            <p class="text-muted">No logs found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Log Detail Modals -->
+{% for log in logs %}
+<div class="modal fade" id="logModal{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="logModalLabel{{ loop.index }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModalLabel{{ loop.index }}">
+                    <i class="fas fa-history" aria-hidden="true"></i> Log Details
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-3">ID</dt>
+                    <dd class="col-sm-9"><code>{{ log.id }}</code></dd>
+
+                    <dt class="col-sm-3">Timestamp</dt>
+                    <dd class="col-sm-9">{{ log.timestamp }}</dd>
+
+                    <dt class="col-sm-3">User</dt>
+                    <dd class="col-sm-9">{{ log.username }} ({{ log.user_id }})</dd>
+
+                    <dt class="col-sm-3">Action</dt>
+                    <dd class="col-sm-9">{{ log.action | replace('_', ' ') | title }}</dd>
+
+                    <dt class="col-sm-3">Entity Type</dt>
+                    <dd class="col-sm-9">{{ log.entity_type | title }}</dd>
+
+                    <dt class="col-sm-3">Entity ID</dt>
+                    <dd class="col-sm-9"><code>{{ log.entity_id or 'N/A' }}</code></dd>
+
+                    {% if log.description %}
+                    <dt class="col-sm-3">Description</dt>
+                    <dd class="col-sm-9">{{ log.description }}</dd>
+                    {% endif %}
+
+                    {% if log.rolled_back %}
+                    <dt class="col-sm-3">Rolled Back</dt>
+                    <dd class="col-sm-9">
+                        Yes, by {{ log.rolled_back_by_username }} at {{ log.rolled_back_at }}
+                    </dd>
+                    {% endif %}
+                </dl>
+
+                {% if log.old_data %}
+                <h6 class="mt-4"><i class="fas fa-arrow-left text-danger" aria-hidden="true"></i> Previous Data</h6>
+                <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ log.old_data | tojson(indent=2) }}</code></pre>
+                {% endif %}
+
+                {% if log.new_data %}
+                <h6 class="mt-4"><i class="fas fa-arrow-right text-success" aria-hidden="true"></i> New Data</h6>
+                <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ log.new_data | tojson(indent=2) }}</code></pre>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
