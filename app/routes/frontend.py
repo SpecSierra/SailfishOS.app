@@ -110,6 +110,9 @@ def index():
                 if app.get('dependency') in ('gapps', 'microg_or_gapps')
             ]
 
+    # Sort apps alphabetically by name
+    filtered_apps.sort(key=lambda x: x.get('android_name', '').lower())
+
     page = request.args.get('page', 1, type=int)
     per_page = 20
     total = len(filtered_apps)
