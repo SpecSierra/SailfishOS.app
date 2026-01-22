@@ -192,6 +192,11 @@ main {
     vertical-align: -0.15em;
 }
 
+.sfos-icon.fa-2x {
+    width: 2em;
+    height: 2em;
+}
+
 /* Status badges */
 .badge-works {
     background-color: #28a745;
