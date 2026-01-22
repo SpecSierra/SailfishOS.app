@@ -10,7 +10,10 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-start">
             <div>
-                <h1><i class="fas fa-ship"></i> SailfishOS App Compatibility</h1>
+                <h1>
+                    <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                    SailfishOS App Compatibility
+                </h1>
                 <p>Find out which Android apps work on SailfishOS and discover native alternatives</p>
             </div>
             <button type="button" class="btn btn-sm btn-outline-light" id="heroToggle" aria-label="Hide header">
@@ -111,7 +114,12 @@
         <div class="card-header">
             <div class="row">
                 <div class="col-6"><strong><i class="fab fa-android" aria-hidden="true"></i> Android App</strong></div>
-                <div class="col-6"><strong><i class="fas fa-ship" aria-hidden="true"></i> SailfishOS Status</strong></div>
+                <div class="col-6">
+                    <strong>
+                        <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                        SailfishOS Status
+                    </strong>
+                </div>
             </div>
         </div>
         <div class="card-body p-0">
@@ -194,7 +202,7 @@
                             <!-- Native -->
                             {% set native = platforms.get('native', {}) %}
                             <span class="mr-3" title="Native SailfishOS App">
-                                <i class="fas fa-ship text-info"></i>
+                                <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                                 {% if native.status == 'yes' %}
                                 <span class="badge badge-works"><i class="fas fa-check"></i></span>
                                 {% elif native.status == 'partial' %}

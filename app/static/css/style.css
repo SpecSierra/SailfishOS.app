@@ -186,6 +186,12 @@ main {
     object-fit: cover;
 }
 
+.sfos-icon {
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.15em;
+}
+
 /* Status badges */
 .badge-works {
     background-color: #28a745;
@@ -978,4 +984,3 @@ main {
 [data-theme="dark"] .border-bottom {
     border-color: var(--border-color) !important;
 }
-

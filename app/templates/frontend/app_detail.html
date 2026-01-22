@@ -51,7 +51,10 @@
                 <hr>
 
                 <!-- SailfishOS Compatibility -->
-                <h3 class="h5 mb-3"><i class="fas fa-ship text-primary"></i> SailfishOS Compatibility</h3>
+                <h3 class="h5 mb-3">
+                    <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                    SailfishOS Compatibility
+                </h3>
 
                 <!-- Native App Section -->
                 {% set all_native_apps = [] %}
@@ -64,7 +67,8 @@
 
                 <div class="card mb-3 {% if all_native_apps %}border-info{% else %}border-secondary{% endif %}">
                     <div class="card-header {% if all_native_apps %}bg-info text-white{% else %}bg-light{% endif %}">
-                        <i class="fas fa-mobile-alt"></i> Native App{% if all_native_apps|length > 1 %}s{% endif %}
+                        <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                        Native App{% if all_native_apps|length > 1 %}s{% endif %}
                     </div>
                     <div class="card-body">
                         {% if all_native_apps %}
@@ -276,8 +280,18 @@
                         {% if report.device or report.sailfish_version or report.app_version %}
                         <div class="text-muted small mt-1">
                             {% if report.device %}<span class="mr-2"><i class="fas fa-mobile-alt" aria-hidden="true"></i> {{ report.device }}</span>{% endif %}
-                            {% if report.sailfish_version %}<span class="mr-2"><i class="fas fa-ship" aria-hidden="true"></i> {{ report.sailfish_version }}</span>{% endif %}
-                            {% if report.app_version %}<span><i class="fas fa-cube" aria-hidden="true"></i> v{{ report.app_version }}</span>{% endif %}
+                            {% if report.sailfish_version %}
+                            <span class="mr-2">
+                                <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                                {{ report.sailfish_version }}
+                            </span>
+                            {% endif %}
+                            {% if report.app_version %}
+                            <span>
+                                <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                                v{{ report.app_version }}
+                            </span>
+                            {% endif %}
                         </div>
                         {% endif %}
 
@@ -361,7 +375,10 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="sailfish_version"><i class="fas fa-ship"></i> SFOS Version</label>
+                                <label for="sailfish_version">
+                                    <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                                    SFOS Version
+                                </label>
                                 {{ form.sailfish_version(class="form-control", id="sfos-select") }}
                             </div>
                             <div class="form-group" id="custom-sfos-group" style="display: none;">
@@ -372,7 +389,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="app_version"><i class="fas fa-cube"></i> App/Client Version (optional)</label>
+                        <label for="app_version">
+                            <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
+                            App/Client Version (optional)
+                        </label>
                         {{ form.app_version(class="form-control", placeholder="e.g., 2.23.10") }}
                     </div>
 
