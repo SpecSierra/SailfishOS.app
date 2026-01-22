@@ -115,35 +115,6 @@ class AppForm(FlaskForm):
     # Additional native apps (JSON format for multiple entries)
     additional_native_apps = TextAreaField('Additional Native Apps (JSON)', validators=[Optional(), Length(max=2000)])
 
-    android_support_works = SelectField('Android App Support', choices=[
-        ('unknown', 'Unknown'),
-        ('yes', 'Works'),
-        ('partial', 'Partial'),
-        ('no', 'Does Not Work')
-    ], default='unknown')
-    android_support_rating = SelectField('Android Support Rating', choices=[
-        ('0', 'Not Rated'),
-        ('1', '1 - Poor'),
-        ('2', '2 - Fair'),
-        ('3', '3 - Good'),
-        ('4', '4 - Very Good'),
-        ('5', '5 - Excellent')
-    ], default='0')
-    android_support_notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
-
-    # microG/GApps dependency
-    dependency = SelectField('Google Services Dependency', choices=DEPENDENCY_CHOICES, default='none')
-
-    # Browser compatibility
-    browser_works = SelectField('Works in SailfishOS Browser', choices=[
-        ('unknown', 'Unknown'),
-        ('yes', 'Yes, works in browser'),
-        ('partial', 'Partially works'),
-        ('no', 'Does not work in browser'),
-        ('na', 'Not applicable (no web version)')
-    ], default='unknown')
-    browser_notes = TextAreaField('Browser Notes', validators=[Optional(), Length(max=500)])
-
 
 class SearchForm(FlaskForm):
     q = StringField('Search', validators=[Optional(), Length(max=100)])
@@ -151,13 +122,6 @@ class SearchForm(FlaskForm):
     status = SelectField('Status', choices=[
         ('', 'All Status'),
         ('native', 'Has Native App'),
-        ('works', 'Android Support Works'),
-        ('partial', 'Partial Support'),
-        ('no', 'Does Not Work'),
-        ('unknown', 'Unknown'),
-        ('browser', 'Works in Browser'),
-        ('microg', 'Requires microG'),
-        ('gapps', 'Requires GApps'),
     ], default='')
     country = SelectField('Country/Region', choices=COUNTRIES, default='')
 
@@ -179,6 +143,11 @@ class ReportForm(FlaskForm):
         ('native', 'Native SailfishOS App'),
         ('browser', 'Web Browser'),
     ], validators=[DataRequired(message='Please select which platform you are testing')])
+
+    native_app = SelectField('Native App', choices=[
+        ('', '-- Select native app --')
+    ], validators=[Optional()])
+    custom_native_app = StringField('Custom Native App', validators=[Optional(), Length(max=100)])
 
     # Does it work?
     works = SelectField('Does it work?', choices=[

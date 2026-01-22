@@ -37,7 +37,6 @@
                 <th>App Name</th>
                 <th>Category</th>
                 <th>Native App</th>
-                <th>Android Support</th>
                 <th>Reports</th>
                 <th>Actions</th>
             </tr>
@@ -66,17 +65,6 @@
                     <span class="badge badge-native">{{ app.native_name }}</span>
                     {% else %}
                     <span class="text-muted">-</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if app.android_support_works == 'yes' %}
-                    <span class="badge badge-works">Works</span>
-                    {% elif app.android_support_works == 'partial' %}
-                    <span class="badge badge-partial">Partial</span>
-                    {% elif app.android_support_works == 'no' %}
-                    <span class="badge badge-no">No</span>
-                    {% else %}
-                    <span class="badge badge-unknown">Unknown</span>
                     {% endif %}
                 </td>
                 <td>{{ app.reports_count or 0 }}</td>

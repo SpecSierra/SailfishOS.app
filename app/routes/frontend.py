@@ -74,41 +74,6 @@ def index():
                 app for app in filtered_apps
                 if app.get('native_exists', False)
             ]
-        elif status == 'works':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('android_support_works') == 'yes'
-            ]
-        elif status == 'partial':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('android_support_works') == 'partial'
-            ]
-        elif status == 'no':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('android_support_works') == 'no'
-            ]
-        elif status == 'unknown':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('android_support_works', 'unknown') == 'unknown'
-            ]
-        elif status == 'browser':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('browser_works') == 'yes'
-            ]
-        elif status == 'microg':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('dependency') in ('microg', 'microg_or_gapps')
-            ]
-        elif status == 'gapps':
-            filtered_apps = [
-                app for app in filtered_apps
-                if app.get('dependency') in ('gapps', 'microg_or_gapps')
-            ]
 
     # Sort apps alphabetically by name
     filtered_apps.sort(key=lambda x: x.get('android_name', '').lower())
@@ -159,6 +124,19 @@ def app_detail(app_id):
         return render_template('frontend/404.html'), 404
 
     form = ReportForm()
+    native_app_choices = [('', '-- Select native app --')]
+    native_names = []
+    if app.get('native_exists') and app.get('native_name'):
+        native_names.append(app.get('native_name'))
+    for native_app in app.get('additional_native_apps', []):
+        name = native_app.get('name')
+        if name:
+            native_names.append(name)
+    for name in native_names:
+        if name not in [choice[0] for choice in native_app_choices]:
+            native_app_choices.append((name, name))
+    native_app_choices.append(('custom', 'Custom...'))
+    form.native_app.choices = native_app_choices
     reports = DataManager.get_reports_for_app(app_id)
 
     # Calculate rating from community reports
@@ -191,6 +169,11 @@ def app_detail(app_id):
             'platform': form.platform.data,
             'works': form.works.data,
             'dependency': form.dependency.data if form.platform.data == 'android' else None,
+            'native_app_name': (
+                (form.custom_native_app.data or '').strip()
+                if form.platform.data == 'native' and form.native_app.data == 'custom'
+                else (form.native_app.data or None) if form.platform.data == 'native' else None
+            ),
             'device': form.custom_device.data if form.device.data == 'custom' else form.device.data,
             'sailfish_version': form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data,
             'app_version': form.app_version.data,
@@ -284,12 +267,6 @@ def submit_app():
             'native_store_url': '',
             'native_rating': 'none',
             'additional_native_apps': [],
-            'android_support_works': 'unknown',
-            'android_support_rating': 0,
-            'android_support_notes': '',
-            'dependency': 'none',
-            'browser_works': 'unknown',
-            'browser_notes': '',
             'reports_count': 0
         }
 

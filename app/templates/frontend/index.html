@@ -50,13 +50,6 @@
                     <select name="status" class="form-control" aria-label="Filter by status">
                         <option value="">All Status</option>
                         <option value="native" {% if request.args.get('status') == 'native' %}selected{% endif %}>Has Native App</option>
-                        <option value="works" {% if request.args.get('status') == 'works' %}selected{% endif %}>Android Support Works</option>
-                        <option value="partial" {% if request.args.get('status') == 'partial' %}selected{% endif %}>Partial Support</option>
-                        <option value="no" {% if request.args.get('status') == 'no' %}selected{% endif %}>Does Not Work</option>
-                        <option value="unknown" {% if request.args.get('status') == 'unknown' %}selected{% endif %}>Unknown</option>
-                        <option value="browser" {% if request.args.get('status') == 'browser' %}selected{% endif %}>Works in Browser</option>
-                        <option value="microg" {% if request.args.get('status') == 'microg' %}selected{% endif %}>Requires microG</option>
-                        <option value="gapps" {% if request.args.get('status') == 'gapps' %}selected{% endif %}>Requires GApps</option>
                     </select>
                 </div>
                 <div class="col-md-2 mb-2 mb-md-0">
@@ -113,8 +106,8 @@
     <div class="card">
         <div class="card-header">
             <div class="row">
-                <div class="col-6"><strong><i class="fab fa-android" aria-hidden="true"></i> Android App</strong></div>
-                <div class="col-6">
+                <div class="col-7"><strong><i class="fab fa-android" aria-hidden="true"></i> Android App</strong></div>
+                <div class="col-5">
                     <strong>
                         <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                         SailfishOS Status
@@ -186,6 +179,7 @@
                             <!-- Android -->
                             {% set android = platforms.get('android', {}) %}
                             <span class="mr-3" title="Android App Support">
+                                {% if android.count > 0 %}
                                 <i class="fab fa-android text-success"></i>
                                 {% if android.status == 'yes' %}
                                 <span class="badge badge-works"><i class="fas fa-check"></i></span>
@@ -196,12 +190,14 @@
                                 {% else %}
                                 <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
                                 {% endif %}
-                                {% if android.count > 0 %}<small class="text-muted">({{ android.count }})</small>{% endif %}
+                                <small class="text-muted">({{ android.count }})</small>
+                                {% endif %}
                             </span>
 
                             <!-- Native -->
                             {% set native = platforms.get('native', {}) %}
                             <span class="mr-3" title="Native SailfishOS App">
+                                {% if native.count > 0 %}
                                 <img src="{{ url_for('static', filename='icons/sailfishos-compatibility.svg') }}" class="sfos-icon mr-1" alt="" aria-hidden="true">
                                 {% if native.status == 'yes' %}
                                 <span class="badge badge-works"><i class="fas fa-check"></i></span>
@@ -212,12 +208,14 @@
                                 {% else %}
                                 <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
                                 {% endif %}
-                                {% if native.count > 0 %}<small class="text-muted">({{ native.count }})</small>{% endif %}
+                                <small class="text-muted">({{ native.count }})</small>
+                                {% endif %}
                             </span>
 
                             <!-- Browser -->
                             {% set browser = platforms.get('browser', {}) %}
                             <span title="Web Browser">
+                                {% if browser.count > 0 %}
                                 <i class="fas fa-globe text-secondary"></i>
                                 {% if browser.status == 'yes' %}
                                 <span class="badge badge-works"><i class="fas fa-check"></i></span>
@@ -228,7 +226,8 @@
                                 {% else %}
                                 <span class="badge badge-unknown"><i class="fas fa-question"></i></span>
                                 {% endif %}
-                                {% if browser.count > 0 %}<small class="text-muted">({{ browser.count }})</small>{% endif %}
+                                <small class="text-muted">({{ browser.count }})</small>
+                                {% endif %}
                             </span>
                         </div>
 

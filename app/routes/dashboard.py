@@ -226,12 +226,6 @@ def apps_add():
             'native_store_url': first_native.get('store_url', ''),
             'native_rating': first_native.get('rating', 'none'),
             'additional_native_apps': additional_native_apps[1:] if len(additional_native_apps) > 1 else [],
-            'android_support_works': form.android_support_works.data,
-            'android_support_rating': int(form.android_support_rating.data),
-            'android_support_notes': form.android_support_notes.data,
-            'dependency': form.dependency.data,
-            'browser_works': form.browser_works.data,
-            'browser_notes': form.browser_notes.data,
             'reports_count': 0
         }
         new_app = DataManager.add_app(app_data)
@@ -296,12 +290,6 @@ def apps_edit(app_id):
             'native_store_url': first_native.get('store_url', ''),
             'native_rating': first_native.get('rating', 'none'),
             'additional_native_apps': additional_native_apps[1:] if len(additional_native_apps) > 1 else [],
-            'android_support_works': form.android_support_works.data,
-            'android_support_rating': int(form.android_support_rating.data),
-            'android_support_notes': form.android_support_notes.data,
-            'dependency': form.dependency.data,
-            'browser_works': form.browser_works.data,
-            'browser_notes': form.browser_notes.data,
             'reports_count': app.get('reports_count', 0)
         }
         updated_app = DataManager.update_app(app_id, app_data)
@@ -339,13 +327,6 @@ def apps_edit(app_id):
         })
     all_native_apps.extend(app.get('additional_native_apps', []))
     form.additional_native_apps.data = json.dumps(all_native_apps) if all_native_apps else '[]'
-
-    form.android_support_works.data = app.get('android_support_works', 'unknown')
-    form.android_support_rating.data = str(app.get('android_support_rating', 0))
-    form.android_support_notes.data = app.get('android_support_notes', '')
-    form.dependency.data = app.get('dependency', 'none')
-    form.browser_works.data = app.get('browser_works', 'unknown')
-    form.browser_notes.data = app.get('browser_notes', '')
 
     return render_template(
         'dashboard/apps_form.html',
@@ -598,12 +579,31 @@ def reports_edit(report_id):
     app = DataManager.get_app_by_id(report.get('app_id'))
 
     form = ReportForm()
+    native_app_choices = [('', '-- Select native app --')]
+    native_names = []
+    if app and app.get('native_exists') and app.get('native_name'):
+        native_names.append(app.get('native_name'))
+    if app:
+        for native_app in app.get('additional_native_apps', []):
+            name = native_app.get('name')
+            if name:
+                native_names.append(name)
+    for name in native_names:
+        if name not in [choice[0] for choice in native_app_choices]:
+            native_app_choices.append((name, name))
+    native_app_choices.append(('custom', 'Custom...'))
+    form.native_app.choices = native_app_choices
 
     if form.validate_on_submit():
         # Update report data
         report['platform'] = form.platform.data
         report['works'] = form.works.data
         report['dependency'] = form.dependency.data if form.platform.data == 'android' else None
+        report['native_app_name'] = (
+            (form.custom_native_app.data or '').strip()
+            if form.platform.data == 'native' and form.native_app.data == 'custom'
+            else (form.native_app.data or None) if form.platform.data == 'native' else None
+        )
         report['device'] = form.custom_device.data if form.device.data == 'custom' else form.device.data
         report['sailfish_version'] = form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data
         report['app_version'] = form.app_version.data
@@ -631,6 +631,15 @@ def reports_edit(report_id):
     form.platform.data = report.get('platform', '')
     form.works.data = report.get('works', '')
     form.dependency.data = report.get('dependency', '')
+    stored_native_app = (report.get('native_app_name') or '').strip()
+    native_choice_values = [choice[0] for choice in form.native_app.choices]
+    if stored_native_app and stored_native_app in native_choice_values:
+        form.native_app.data = stored_native_app
+    elif stored_native_app:
+        form.native_app.data = 'custom'
+        form.custom_native_app.data = stored_native_app
+    else:
+        form.native_app.data = ''
     # Check if device is in the standard list or a custom one
     stored_device = report.get('device', '')
     standard_devices = [d[0] for d in SUPPORTED_DEVICES if d[0] and d[0] != 'custom']
