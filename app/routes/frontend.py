@@ -75,8 +75,20 @@ def index():
                 if app.get('native_exists', False)
             ]
 
-    # Sort apps alphabetically by name
-    filtered_apps.sort(key=lambda x: x.get('android_name', '').lower())
+    # Sort apps: has native app, has rating, rating quality, then alphabetically
+    ratings_map = {}
+    for app in filtered_apps:
+        rating, count = DataManager.get_app_rating_from_reports(app['id'])
+        ratings_map[app['id']] = {'rating': rating, 'count': count}
+
+    def sort_key(app):
+        rating_info = ratings_map.get(app['id'], {'rating': 0, 'count': 0})
+        has_native = 1 if app.get('native_exists') else 0
+        has_rating = 1 if rating_info['rating'] > 0 else 0
+        rating_value = rating_info['rating'] or 0
+        return (-has_native, -has_rating, -rating_value, -rating_info['count'], app.get('android_name', '').lower())
+
+    filtered_apps.sort(key=sort_key)
 
     page = request.args.get('page', 1, type=int)
     per_page = 20
@@ -91,7 +103,9 @@ def index():
     # Calculate ratings from community reports for each app
     app_ratings = {}
     for app in paginated_apps:
-        rating, count = DataManager.get_app_rating_from_reports(app['id'])
+        rating_info = ratings_map.get(app['id'])
+        rating = rating_info['rating'] if rating_info else 0
+        count = rating_info['count'] if rating_info else 0
         community_status = DataManager.get_app_status_from_reports(app['id'])
         platform_ratings = DataManager.get_app_ratings_by_platform(app['id'])
         app_ratings[app['id']] = {
