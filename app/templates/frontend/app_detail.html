@@ -347,19 +347,19 @@
                                 {{ form.native_app(class="form-control", id="native-app-select") }}
                             </div>
                         </div>
-                        <div class="col-md-6" id="custom-native-app-group" style="display: none;">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App</label>
-                                {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
+                                <label for="works"><i class="fas fa-check-circle"></i> Does it work? *</label>
+                                {{ form.works(class="form-control") }}
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="custom-native-app-group" style="display: none;">
                             <div class="form-group">
-                                <label for="works"><i class="fas fa-check-circle"></i> Does it work? *</label>
-                                {{ form.works(class="form-control") }}
+                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App</label>
+                                {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
                             </div>
                         </div>
                         <div class="col-md-6" id="dependency-group" style="display: none;">

@@ -1,0 +1,55 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Disable Two-Factor Authentication - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-unlock" aria-hidden="true"></i> Disable Two-Factor Authentication</h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Warning
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <p class="mb-0">Disabling two-factor authentication will make your account less secure. Only proceed if you understand the risks.</p>
+                </div>
+
+                <p class="text-muted">To disable 2FA, please confirm your identity by entering your password and a code from your authenticator app:</p>
+
+                <form method="POST" action="{{ url_for('dashboard.disable_2fa') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        <label for="password"><i class="fas fa-key"></i> Current Password</label>
+                        {{ form.password(class="form-control", placeholder="Enter your password") }}
+                        {% for error in form.password.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="totp_code"><i class="fas fa-mobile-alt"></i> Authentication Code</label>
+                        {{ form.totp_code(class="form-control text-center", placeholder="000000", maxlength="6", autocomplete="off", inputmode="numeric", pattern="[0-9]*") }}
+                        {% for error in form.totp_code.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard.profile') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-unlock" aria-hidden="true"></i> Disable 2FA
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,14 +1,177 @@
-"""Utility functions for fetching app data."""
+"""Utility functions for fetching app data and authentication."""
 
+import base64
+import io
+import logging
 import requests
 import re
 import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from flask import current_app
 from config import Config
+
+try:
+    import pyotp
+    import qrcode
+    TOTP_AVAILABLE = True
+except ImportError:
+    TOTP_AVAILABLE = False
+
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 # Directory to store downloaded icons
 ICONS_DIR = Config.ICONS_DIR
+
+# Maximum file size for downloaded icons (1MB)
+MAX_ICON_SIZE = 1 * 1024 * 1024
+
+# Allowed MIME types for icons
+ALLOWED_ICON_MIMETYPES = {'image/png', 'image/jpeg', 'image/webp', 'image/gif'}
+
+# Valid package name pattern (Android package names)
+PACKAGE_NAME_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$')
+
+# Allowed domains for icon URLs (whitelist trusted sources)
+ALLOWED_ICON_DOMAINS = {
+    'play-lh.googleusercontent.com',
+    'lh3.googleusercontent.com',
+    'lh4.googleusercontent.com',
+    'lh5.googleusercontent.com',
+    'lh6.googleusercontent.com',
+    'play.google.com',
+}
+
+
+def verify_hcaptcha(response_token):
+    """
+    Verify hCaptcha response token.
+
+    Args:
+        response_token: The h-captcha-response token from the form
+
+    Returns:
+        True if verification succeeded, False otherwise
+    """
+    if not response_token:
+        return False
+
+    payload = {
+        'secret': current_app.config['HCAPTCHA_SECRET_KEY'],
+        'response': response_token
+    }
+
+    try:
+        r = requests.post(current_app.config['HCAPTCHA_VERIFY_URL'], data=payload, timeout=10)
+        result = r.json()
+        return result.get('success', False)
+    except requests.RequestException:
+        return False
+
+
+# ============ TOTP Two-Factor Authentication ============
+
+def is_totp_available():
+    """Check if TOTP libraries are available."""
+    return TOTP_AVAILABLE
+
+
+def generate_totp_secret():
+    """
+    Generate a new TOTP secret.
+
+    Returns:
+        Base32-encoded secret string, or None if TOTP not available
+    """
+    if not TOTP_AVAILABLE:
+        return None
+    return pyotp.random_base32()
+
+
+def get_totp_uri(secret, username, issuer='SailfishOS.app'):
+    """
+    Generate a TOTP provisioning URI for authenticator apps.
+
+    Args:
+        secret: The TOTP secret
+        username: The user's username
+        issuer: The application name
+
+    Returns:
+        TOTP URI string
+    """
+    if not TOTP_AVAILABLE or not secret:
+        return None
+    totp = pyotp.TOTP(secret)
+    return totp.provisioning_uri(name=username, issuer_name=issuer)
+
+
+def generate_totp_qr_code(secret, username, issuer='SailfishOS.app'):
+    """
+    Generate a QR code image for TOTP setup.
+
+    Args:
+        secret: The TOTP secret
+        username: The user's username
+        issuer: The application name
+
+    Returns:
+        Base64-encoded PNG image data, or None if unavailable
+    """
+    if not TOTP_AVAILABLE or not secret:
+        return None
+
+    uri = get_totp_uri(secret, username, issuer)
+    if not uri:
+        return None
+
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(uri)
+    qr.make(fit=True)
+
+    # Create image
+    img = qr.make_image(fill_color='black', back_color='white')
+
+    # Convert to base64
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    img_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    return f"data:image/png;base64,{img_data}"
+
+
+def verify_totp(secret, code):
+    """
+    Verify a TOTP code.
+
+    Args:
+        secret: The user's TOTP secret
+        code: The 6-digit code to verify
+
+    Returns:
+        True if the code is valid, False otherwise
+    """
+    if not TOTP_AVAILABLE or not secret or not code:
+        return False
+
+    # Clean the code (remove spaces)
+    code = code.replace(' ', '').replace('-', '')
+
+    # Validate code format
+    if not code.isdigit() or len(code) != 6:
+        return False
+
+    totp = pyotp.TOTP(secret)
+    # Allow 1 period of clock drift (30 seconds before/after)
+    return totp.verify(code, valid_window=1)
 
 
 def ensure_icons_dir():
@@ -72,16 +235,59 @@ def fetch_play_store_icon(package_name):
         return None
 
     except requests.RequestException as e:
-        print(f"Error fetching Play Store page for {package_name}: {e}")
+        logger.warning(f"Error fetching Play Store page for {package_name}: {e}")
         return None
     except Exception as e:
-        print(f"Error parsing Play Store page for {package_name}: {e}")
+        logger.error(f"Error parsing Play Store page for {package_name}: {e}")
         return None
+
+
+def is_valid_package_name(package_name):
+    """
+    Validate Android package name format to prevent path traversal.
+
+    Args:
+        package_name: The package name to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not package_name or len(package_name) > 150:
+        return False
+    # Check for path traversal attempts
+    if '..' in package_name or '/' in package_name or '\\' in package_name:
+        return False
+    # Validate format
+    return bool(PACKAGE_NAME_PATTERN.match(package_name))
+
+
+def is_allowed_icon_url(url):
+    """
+    Check if the icon URL is from an allowed domain.
+
+    Args:
+        url: The URL to validate
+
+    Returns:
+        True if the domain is whitelisted, False otherwise
+    """
+    if not url:
+        return False
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        # Must be HTTPS
+        if parsed.scheme != 'https':
+            return False
+        # Check domain against whitelist
+        return parsed.netloc in ALLOWED_ICON_DOMAINS
+    except Exception:
+        return False
 
 
 def download_icon(icon_url, package_name):
     """
-    Download an icon and save it locally.
+    Download an icon and save it locally with security validations.
 
     Args:
         icon_url: URL of the icon to download
@@ -93,6 +299,16 @@ def download_icon(icon_url, package_name):
     if not icon_url or not package_name:
         return None
 
+    # Validate icon URL domain (whitelist trusted sources)
+    if not is_allowed_icon_url(icon_url):
+        logger.warning(f"Icon URL from untrusted domain: {icon_url}")
+        return None
+
+    # Validate package name to prevent path traversal
+    if not is_valid_package_name(package_name):
+        logger.warning(f"Invalid package name format: {package_name}")
+        return None
+
     ensure_icons_dir()
 
     # Determine file extension
@@ -102,25 +318,58 @@ def download_icon(icon_url, package_name):
     elif '.jpg' in icon_url or '.jpeg' in icon_url:
         ext = '.jpg'
 
-    filename = f"{package_name.replace('.', '_')}{ext}"
+    # Sanitize filename (replace dots with underscores, keep only alphanumeric and underscores)
+    safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', package_name.replace('.', '_'))
+    filename = f"{safe_name}{ext}"
     filepath = os.path.join(ICONS_DIR, filename)
+
+    # Verify the resolved path is within ICONS_DIR (prevent path traversal)
+    real_icons_dir = os.path.realpath(ICONS_DIR)
+    real_filepath = os.path.realpath(filepath)
+    if not real_filepath.startswith(real_icons_dir + os.sep):
+        logger.warning(f"Path traversal attempt detected for: {package_name}")
+        return None
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     }
 
     try:
-        response = requests.get(icon_url, headers=headers, timeout=10)
+        # Use stream=True to check size before downloading entire file
+        response = requests.get(icon_url, headers=headers, timeout=10, stream=True)
         response.raise_for_status()
 
+        # Check content length if provided
+        content_length = response.headers.get('Content-Length')
+        if content_length and int(content_length) > MAX_ICON_SIZE:
+            logger.warning(f"Icon too large for {package_name}: {content_length} bytes")
+            return None
+
+        # Check MIME type
+        content_type = response.headers.get('Content-Type', '').split(';')[0].strip()
+        if content_type and content_type not in ALLOWED_ICON_MIMETYPES:
+            logger.warning(f"Invalid MIME type for {package_name}: {content_type}")
+            return None
+
+        # Download with size limit
+        content = b''
+        for chunk in response.iter_content(chunk_size=8192):
+            content += chunk
+            if len(content) > MAX_ICON_SIZE:
+                logger.warning(f"Icon exceeded size limit for {package_name}")
+                return None
+
         with open(filepath, 'wb') as f:
-            f.write(response.content)
+            f.write(content)
 
         # Return the URL path for use in templates
         return f"/icons/{filename}"
 
+    except requests.RequestException as e:
+        logger.warning(f"Error downloading icon for {package_name}: {e}")
+        return None
     except Exception as e:
-        print(f"Error downloading icon for {package_name}: {e}")
+        logger.error(f"Unexpected error downloading icon for {package_name}: {e}")
         return None
 
 
@@ -290,10 +539,10 @@ def fetch_play_store_info(package_name):
         return result if result else None
 
     except requests.RequestException as e:
-        print(f"Error fetching Play Store page for {package_name}: {e}")
+        logger.warning(f"Error fetching Play Store info for {package_name}: {e}")
         return None
     except Exception as e:
-        print(f"Error parsing Play Store page for {package_name}: {e}")
+        logger.error(f"Error parsing Play Store info for {package_name}: {e}")
         return None
 
 

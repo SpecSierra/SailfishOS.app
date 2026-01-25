@@ -2,10 +2,14 @@
 Audit logging system for tracking user actions with rollback support.
 """
 import json
+import logging
 import os
 import uuid
 from datetime import datetime
-from flask import current_app
+from flask import current_app, request
+
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 
 class LogManager:
@@ -26,6 +30,13 @@ class LogManager:
     ACTION_CATEGORY_EDITED = 'category_edited'
     ACTION_CATEGORY_DELETED = 'category_deleted'
     ACTION_ROLLBACK = 'rollback'
+
+    # Security event types
+    SECURITY_LOGIN_FAILED = 'login_failed'
+    SECURITY_LOGIN_SUCCESS = 'login_success'
+    SECURITY_CAPTCHA_FAILED = 'captcha_failed'
+    SECURITY_PERMISSION_DENIED = 'permission_denied'
+    SECURITY_ACCOUNT_LOCKED = 'account_locked'
 
     @staticmethod
     def _load_logs():
@@ -172,3 +183,45 @@ class LogManager:
             'category': 'fa-tags',
         }
         return icons.get(entity_type, 'fa-question')
+
+    @classmethod
+    def log_security_event(cls, event_type, username=None, description=None, extra_data=None):
+        """
+        Log a security-related event.
+
+        Args:
+            event_type: Type of security event (use SECURITY_* constants)
+            username: Username involved (if applicable)
+            description: Human-readable description
+            extra_data: Additional context data
+        """
+        # Get client IP address
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip_address and ',' in ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+
+        log_entry = {
+            'id': str(uuid.uuid4()),
+            'timestamp': datetime.utcnow().isoformat(),
+            'event_type': event_type,
+            'username': username,
+            'ip_address': ip_address,
+            'user_agent': request.headers.get('User-Agent', ''),
+            'description': description,
+            'extra_data': extra_data or {}
+        }
+
+        # Log to Python logger for external log aggregation
+        log_message = f"SECURITY: {event_type} - user={username} ip={ip_address} - {description}"
+        if event_type in (cls.SECURITY_LOGIN_FAILED, cls.SECURITY_CAPTCHA_FAILED,
+                          cls.SECURITY_PERMISSION_DENIED, cls.SECURITY_ACCOUNT_LOCKED):
+            logger.warning(log_message)
+        else:
+            logger.info(log_message)
+
+        # Also store in JSON logs for audit trail
+        logs = cls._load_logs()
+        logs.insert(0, log_entry)
+        cls._save_logs(logs)
+
+        return log_entry

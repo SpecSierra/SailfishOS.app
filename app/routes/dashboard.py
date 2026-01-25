@@ -1,11 +1,20 @@
 import json
-import requests
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
-from app import login_manager
+from app import login_manager, limiter
 from app.models import DataManager, User
-from app.forms import LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm, SUPPORTED_DEVICES, SFOS_VERSIONS
-from app.utils import fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info
+from app.forms import (
+    LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm,
+    TwoFactorSetupForm, TwoFactorVerifyForm, TwoFactorDisableForm,
+    SUPPORTED_DEVICES, SFOS_VERSIONS
+)
+from app.utils import (
+    fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info,
+    verify_hcaptcha, is_totp_available, generate_totp_secret,
+    generate_totp_qr_code, verify_totp, get_totp_uri
+)
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
 from app.logs import LogManager
 from app.permissions import (
@@ -16,23 +25,100 @@ from app.permissions import (
     CAN_REFRESH_PLAYSTORE, CAN_VIEW_LOGS, CAN_ROLLBACK
 )
 
+# Account lockout configuration
+MAX_FAILED_ATTEMPTS = 5  # Lock account after 5 failed attempts
+LOCKOUT_DURATION_MINUTES = 15  # Lock for 15 minutes
 
-def verify_hcaptcha(response_token):
-    """Verify hCaptcha response token."""
-    if not response_token:
+# In-memory storage for failed login attempts (per username)
+# Format: {username: {'count': int, 'first_attempt': datetime, 'locked_until': datetime or None}}
+_failed_login_attempts = {}
+
+
+def is_safe_url(target):
+    """Check if the target URL is safe for redirection (prevents open redirect)."""
+    if not target:
+        return False
+    # Parse the target URL
+    parsed = urlparse(target)
+    # Only allow relative URLs (no scheme or netloc)
+    # This prevents redirects to external sites
+    return not parsed.scheme and not parsed.netloc
+
+
+def is_account_locked(username):
+    """Check if an account is currently locked due to failed login attempts."""
+    if username not in _failed_login_attempts:
         return False
 
-    payload = {
-        'secret': current_app.config['HCAPTCHA_SECRET_KEY'],
-        'response': response_token
-    }
+    attempt_info = _failed_login_attempts[username]
+    locked_until = attempt_info.get('locked_until')
 
-    try:
-        r = requests.post(current_app.config['HCAPTCHA_VERIFY_URL'], data=payload, timeout=10)
-        result = r.json()
-        return result.get('success', False)
-    except Exception:
-        return False
+    if locked_until:
+        if datetime.utcnow() < locked_until:
+            return True
+        else:
+            # Lockout expired, reset the counter
+            del _failed_login_attempts[username]
+            return False
+
+    return False
+
+
+def get_lockout_remaining_minutes(username):
+    """Get the remaining lockout time in minutes."""
+    if username not in _failed_login_attempts:
+        return 0
+
+    attempt_info = _failed_login_attempts[username]
+    locked_until = attempt_info.get('locked_until')
+
+    if locked_until and datetime.utcnow() < locked_until:
+        remaining = locked_until - datetime.utcnow()
+        return max(1, int(remaining.total_seconds() / 60))
+
+    return 0
+
+
+def record_failed_login(username):
+    """Record a failed login attempt and lock account if threshold reached."""
+    now = datetime.utcnow()
+
+    if username not in _failed_login_attempts:
+        _failed_login_attempts[username] = {
+            'count': 1,
+            'first_attempt': now,
+            'locked_until': None
+        }
+    else:
+        attempt_info = _failed_login_attempts[username]
+
+        # Reset if the first attempt was more than lockout duration ago
+        if now - attempt_info['first_attempt'] > timedelta(minutes=LOCKOUT_DURATION_MINUTES):
+            _failed_login_attempts[username] = {
+                'count': 1,
+                'first_attempt': now,
+                'locked_until': None
+            }
+        else:
+            attempt_info['count'] += 1
+
+            # Lock account if threshold reached
+            if attempt_info['count'] >= MAX_FAILED_ATTEMPTS:
+                attempt_info['locked_until'] = now + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+                LogManager.log_security_event(
+                    LogManager.SECURITY_ACCOUNT_LOCKED,
+                    username=username,
+                    description=f'Account locked after {MAX_FAILED_ATTEMPTS} failed login attempts'
+                )
+                return True  # Account is now locked
+
+    return False  # Account not locked
+
+
+def clear_failed_attempts(username):
+    """Clear failed login attempts after successful login."""
+    if username in _failed_login_attempts:
+        del _failed_login_attempts[username]
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -43,33 +129,141 @@ def load_user(user_id):
 
 
 @dashboard_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Rate limit: 10 login attempts per minute per IP
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
+        username = form.username.data
+
+        # Check if account is locked due to failed attempts
+        if is_account_locked(username):
+            remaining = get_lockout_remaining_minutes(username)
+            flash(f'Account temporarily locked due to too many failed attempts. Try again in {remaining} minutes.', 'danger')
+            return render_template('dashboard/login.html', form=form, hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
+
         # Verify hCaptcha
         hcaptcha_response = request.form.get('h-captcha-response')
         if not verify_hcaptcha(hcaptcha_response):
+            LogManager.log_security_event(
+                LogManager.SECURITY_CAPTCHA_FAILED,
+                username=username,
+                description='Failed captcha verification on login'
+            )
             flash('Please complete the captcha verification.', 'danger')
             return render_template('dashboard/login.html', form=form, hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
 
-        user = DataManager.get_user_by_username(form.username.data)
+        user = DataManager.get_user_by_username(username)
         if user and user.check_password(form.password.data):
             if user.is_banned:
+                LogManager.log_security_event(
+                    LogManager.SECURITY_LOGIN_FAILED,
+                    username=username,
+                    description='Login attempt on banned account'
+                )
                 flash('Your account has been suspended.', 'danger')
                 return render_template('dashboard/login.html', form=form, hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
+
+            # Clear failed attempts on successful authentication
+            clear_failed_attempts(username)
+
+            # Check if 2FA is enabled
+            if user.totp_enabled and user.totp_secret:
+                # Store pending login in session for 2FA verification
+                session['pending_2fa_user_id'] = user.id
+                session['pending_2fa_remember'] = form.remember_me.data
+                session['pending_2fa_next'] = request.args.get('next')
+                return redirect(url_for('dashboard.verify_2fa'))
+
+            # No 2FA - log in directly
             login_user(user, remember=form.remember_me.data)
+            LogManager.log_security_event(
+                LogManager.SECURITY_LOGIN_SUCCESS,
+                username=user.username,
+                description='Successful login'
+            )
             next_page = request.args.get('next')
             flash('Logged in successfully.', 'success')
-            return redirect(next_page or url_for('dashboard.index'))
-        flash('Invalid username or password.', 'danger')
+            # Validate next_page to prevent open redirect vulnerability (CWE-601)
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for('dashboard.index'))
+
+        # Record failed attempt and check if account should be locked
+        account_locked = record_failed_login(username)
+        LogManager.log_security_event(
+            LogManager.SECURITY_LOGIN_FAILED,
+            username=username,
+            description='Invalid username or password'
+        )
+        if account_locked:
+            flash(f'Account temporarily locked due to too many failed attempts. Try again in {LOCKOUT_DURATION_MINUTES} minutes.', 'danger')
+        else:
+            flash('Invalid username or password.', 'danger')
 
     return render_template('dashboard/login.html', form=form, hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
 
 
+@dashboard_bp.route('/verify-2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    """Verify 2FA code during login."""
+    # Check if there's a pending 2FA login
+    user_id = session.get('pending_2fa_user_id')
+    if not user_id:
+        flash('No pending login found. Please log in again.', 'warning')
+        return redirect(url_for('dashboard.login'))
+
+    user = DataManager.get_user_by_id(user_id)
+    if not user:
+        session.pop('pending_2fa_user_id', None)
+        session.pop('pending_2fa_remember', None)
+        session.pop('pending_2fa_next', None)
+        flash('User not found. Please log in again.', 'danger')
+        return redirect(url_for('dashboard.login'))
+
+    form = TwoFactorVerifyForm()
+    if form.validate_on_submit():
+        if verify_totp(user.totp_secret, form.totp_code.data):
+            # 2FA verified - complete login
+            remember = session.pop('pending_2fa_remember', False)
+            next_page = session.pop('pending_2fa_next', None)
+            session.pop('pending_2fa_user_id', None)
+
+            login_user(user, remember=remember)
+            LogManager.log_security_event(
+                LogManager.SECURITY_LOGIN_SUCCESS,
+                username=user.username,
+                description='Successful login with 2FA'
+            )
+            flash('Logged in successfully.', 'success')
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for('dashboard.index'))
+        else:
+            LogManager.log_security_event(
+                LogManager.SECURITY_LOGIN_FAILED,
+                username=user.username,
+                description='Invalid 2FA code'
+            )
+            flash('Invalid authentication code. Please try again.', 'danger')
+
+    return render_template('dashboard/verify_2fa.html', form=form, username=user.username)
+
+
+@dashboard_bp.route('/cancel-2fa')
+def cancel_2fa():
+    """Cancel pending 2FA login."""
+    session.pop('pending_2fa_user_id', None)
+    session.pop('pending_2fa_remember', None)
+    session.pop('pending_2fa_next', None)
+    flash('Login cancelled.', 'info')
+    return redirect(url_for('dashboard.login'))
+
+
 @dashboard_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per hour")  # Rate limit: 5 registrations per hour per IP
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('frontend.index'))
@@ -176,6 +370,122 @@ def profile_delete():
     return redirect(url_for('frontend.index'))
 
 
+# ============ Two-Factor Authentication (2FA) ============
+
+@dashboard_bp.route('/profile/2fa/setup', methods=['GET', 'POST'])
+@login_required
+@check_not_banned
+def setup_2fa():
+    """Set up two-factor authentication."""
+    if not is_totp_available():
+        flash('Two-factor authentication is not available. Required libraries are missing.', 'danger')
+        return redirect(url_for('dashboard.profile'))
+
+    if current_user.totp_enabled:
+        flash('Two-factor authentication is already enabled.', 'info')
+        return redirect(url_for('dashboard.profile'))
+
+    form = TwoFactorSetupForm()
+
+    # Generate or retrieve pending secret from session
+    if 'pending_totp_secret' not in session:
+        session['pending_totp_secret'] = generate_totp_secret()
+
+    secret = session['pending_totp_secret']
+    qr_code = generate_totp_qr_code(secret, current_user.username)
+    totp_uri = get_totp_uri(secret, current_user.username)
+
+    if form.validate_on_submit():
+        if verify_totp(secret, form.totp_code.data):
+            # Enable 2FA for the user
+            DataManager.update_user(
+                current_user.id,
+                totp_secret=secret,
+                totp_enabled=True
+            )
+            session.pop('pending_totp_secret', None)
+
+            LogManager.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action='2fa_enabled',
+                entity_type='user',
+                entity_id=current_user.id,
+                old_data={'totp_enabled': False},
+                new_data={'totp_enabled': True},
+                description='Enabled two-factor authentication'
+            )
+
+            flash('Two-factor authentication has been enabled successfully!', 'success')
+            return redirect(url_for('dashboard.profile'))
+        else:
+            flash('Invalid verification code. Please try again.', 'danger')
+
+    return render_template(
+        'dashboard/setup_2fa.html',
+        form=form,
+        qr_code=qr_code,
+        secret=secret,
+        totp_uri=totp_uri
+    )
+
+
+@dashboard_bp.route('/profile/2fa/disable', methods=['GET', 'POST'])
+@login_required
+@check_not_banned
+def disable_2fa():
+    """Disable two-factor authentication."""
+    if not current_user.totp_enabled:
+        flash('Two-factor authentication is not enabled.', 'info')
+        return redirect(url_for('dashboard.profile'))
+
+    form = TwoFactorDisableForm()
+
+    if form.validate_on_submit():
+        # Verify password
+        if not current_user.check_password(form.password.data):
+            flash('Incorrect password.', 'danger')
+            return render_template('dashboard/disable_2fa.html', form=form)
+
+        # Verify TOTP code
+        if not verify_totp(current_user.totp_secret, form.totp_code.data):
+            flash('Invalid authentication code.', 'danger')
+            return render_template('dashboard/disable_2fa.html', form=form)
+
+        # Disable 2FA
+        DataManager.update_user(
+            current_user.id,
+            totp_secret=None,
+            totp_enabled=False
+        )
+
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action='2fa_disabled',
+            entity_type='user',
+            entity_id=current_user.id,
+            old_data={'totp_enabled': True},
+            new_data={'totp_enabled': False},
+            description='Disabled two-factor authentication'
+        )
+
+        flash('Two-factor authentication has been disabled.', 'success')
+        return redirect(url_for('dashboard.profile'))
+
+    return render_template('dashboard/disable_2fa.html', form=form)
+
+
+@dashboard_bp.route('/profile/2fa/cancel')
+@login_required
+@check_not_banned
+def cancel_2fa_setup():
+    """Cancel 2FA setup."""
+    session.pop('pending_totp_secret', None)
+    flash('Two-factor authentication setup cancelled.', 'info')
+    return redirect(url_for('dashboard.profile'))
+
+
 @dashboard_bp.route('/apps')
 @login_required
 @check_not_banned
@@ -204,11 +514,15 @@ def apps_add():
 
         # Parse additional native apps JSON
         additional_native_apps = []
-        if form.additional_native_apps.data:
+        if form.additional_native_apps.data and form.additional_native_apps.data.strip():
             try:
                 additional_native_apps = json.loads(form.additional_native_apps.data)
-            except json.JSONDecodeError:
-                flash('Invalid JSON format for additional native apps.', 'warning')
+                if not isinstance(additional_native_apps, list):
+                    flash('Invalid JSON format: expected a list of native apps.', 'danger')
+                    return render_template('dashboard/apps_form.html', form=form, title='Add App', reports=[], hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
+            except json.JSONDecodeError as e:
+                flash(f'Invalid JSON format for additional native apps: {e}', 'danger')
+                return render_template('dashboard/apps_form.html', form=form, title='Add App', reports=[], hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
 
         # Derive primary native app from first entry in additional_native_apps
         native_exists = len(additional_native_apps) > 0
@@ -268,11 +582,17 @@ def apps_edit(app_id):
     if form.validate_on_submit():
         # Parse additional native apps JSON
         additional_native_apps = []
-        if form.additional_native_apps.data:
+        if form.additional_native_apps.data and form.additional_native_apps.data.strip():
             try:
                 additional_native_apps = json.loads(form.additional_native_apps.data)
-            except json.JSONDecodeError:
-                flash('Invalid JSON format for additional native apps.', 'warning')
+                if not isinstance(additional_native_apps, list):
+                    flash('Invalid JSON format: expected a list of native apps.', 'danger')
+                    reports = DataManager.get_reports_for_app(app_id)
+                    return render_template('dashboard/apps_form.html', form=form, title='Edit App', app=app, reports=reports)
+            except json.JSONDecodeError as e:
+                flash(f'Invalid JSON format for additional native apps: {e}', 'danger')
+                reports = DataManager.get_reports_for_app(app_id)
+                return render_template('dashboard/apps_form.html', form=form, title='Edit App', app=app, reports=reports)
 
         # Derive primary native app from first entry in additional_native_apps
         native_exists = len(additional_native_apps) > 0

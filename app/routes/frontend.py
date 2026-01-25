@@ -1,9 +1,9 @@
-import requests
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, send_from_directory
 from flask_login import current_user
+from app import limiter
 from app.models import DataManager
 from app.forms import SearchForm, ReportForm, AppSubmitForm
-from app.utils import fetch_and_update_app_info
+from app.utils import fetch_and_update_app_info, verify_hcaptcha
 from app.logs import LogManager
 from config import Config
 
@@ -16,29 +16,13 @@ def serve_icon(filename):
     return send_from_directory(Config.ICONS_DIR, filename)
 
 
-def verify_hcaptcha(response_token):
-    """Verify hCaptcha response token."""
-    if not response_token:
-        return False
-
-    payload = {
-        'secret': current_app.config['HCAPTCHA_SECRET_KEY'],
-        'response': response_token
-    }
-
-    try:
-        r = requests.post(current_app.config['HCAPTCHA_VERIFY_URL'], data=payload, timeout=10)
-        result = r.json()
-        return result.get('success', False)
-    except Exception:
-        return False
-
-
 @frontend_bp.route('/')
 def index():
     apps = DataManager.get_apps()
     categories = DataManager.get_categories()
 
+    # CSRF disabled for search form: this is a GET request for filtering/searching
+    # which is idempotent and doesn't modify state, so CSRF protection is not needed
     form = SearchForm(request.args, meta={'csrf': False})
     form.category.choices = [('', 'All Categories')] + [(c['slug'], c['name']) for c in categories]
 
@@ -129,6 +113,7 @@ def index():
 
 
 @frontend_bp.route('/app/<app_id>', methods=['GET', 'POST'])
+@limiter.limit("20 per hour", methods=["POST"])  # Rate limit report submissions
 def app_detail(app_id):
     app = DataManager.get_app_by_id(app_id)
     categories = DataManager.get_categories()
@@ -232,6 +217,7 @@ def about():
 
 
 @frontend_bp.route('/submit-app', methods=['GET', 'POST'])
+@limiter.limit("10 per hour", methods=["POST"])  # Rate limit app submissions
 def submit_app():
     """Allow anyone to submit a new app by package name."""
     categories = DataManager.get_categories()

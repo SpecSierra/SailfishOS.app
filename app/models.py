@@ -1,6 +1,8 @@
 import json
 import os
 import uuid
+import fcntl
+import tempfile
 from datetime import datetime
 from flask_login import UserMixin
 from argon2 import PasswordHasher
@@ -10,14 +12,39 @@ from flask import current_app
 ph = PasswordHasher()
 
 
+class FileLock:
+    """Context manager for file locking to prevent race conditions."""
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.lock_path = filepath + '.lock'
+        self.lock_file = None
+
+    def __enter__(self):
+        # Create lock file if it doesn't exist
+        self.lock_file = open(self.lock_path, 'w')
+        # Acquire exclusive lock (blocks until available)
+        fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Release lock
+        fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_UN)
+        self.lock_file.close()
+        return False
+
+
 class User(UserMixin):
-    def __init__(self, id, username, email, password_hash, role='user', is_banned=False):
+    def __init__(self, id, username, email, password_hash, role='user', is_banned=False,
+                 totp_secret=None, totp_enabled=False):
         self.id = id
         self.username = username
         self.email = email
         self.password_hash = password_hash
         self.role = role
         self.is_banned = is_banned
+        self.totp_secret = totp_secret
+        self.totp_enabled = totp_enabled
 
     def check_password(self, password):
         try:
@@ -68,7 +95,9 @@ class User(UserMixin):
             'email': self.email,
             'password_hash': self.password_hash,
             'role': self.role,
-            'is_banned': self.is_banned
+            'is_banned': self.is_banned,
+            'totp_secret': self.totp_secret,
+            'totp_enabled': self.totp_enabled
         }
 
     @classmethod
@@ -79,7 +108,9 @@ class User(UserMixin):
             email=data['email'],
             password_hash=data['password_hash'],
             role=data.get('role', 'user'),
-            is_banned=data.get('is_banned', False)
+            is_banned=data.get('is_banned', False),
+            totp_secret=data.get('totp_secret'),
+            totp_enabled=data.get('totp_enabled', False)
         )
 
 
@@ -90,15 +121,31 @@ class DataManager:
 
     @staticmethod
     def _load_json(filepath):
-        if os.path.exists(filepath):
+        """Load JSON data from file with file locking to prevent race conditions."""
+        if not os.path.exists(filepath):
+            return {}
+        with FileLock(filepath):
             with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        return {}
 
     @staticmethod
     def _save_json(filepath, data):
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        """Save JSON data to file with atomic write and file locking."""
+        # Get directory for temp file
+        dir_path = os.path.dirname(filepath)
+        with FileLock(filepath):
+            # Write to temp file first (atomic write pattern)
+            fd, temp_path = tempfile.mkstemp(dir=dir_path, suffix='.tmp')
+            try:
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                # Atomic rename (on POSIX systems)
+                os.replace(temp_path, filepath)
+            except Exception:
+                # Clean up temp file on error
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                raise
 
     @classmethod
     def get_apps(cls):
@@ -223,6 +270,10 @@ class DataManager:
                     user.is_banned = kwargs['is_banned']
                 if 'email' in kwargs:
                     user.email = kwargs['email']
+                if 'totp_secret' in kwargs:
+                    user.totp_secret = kwargs['totp_secret']
+                if 'totp_enabled' in kwargs:
+                    user.totp_enabled = kwargs['totp_enabled']
                 users[i] = user
                 cls.save_users(users)
                 return user

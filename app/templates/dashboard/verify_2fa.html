@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Two-Factor Authentication - SailfishOS.app{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: calc(100vh - 200px);">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header text-center">
+                <h4><i class="fas fa-shield-alt"></i> Two-Factor Authentication</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-center text-muted mb-4">
+                    Enter the 6-digit code from your authenticator app to continue logging in as <strong>{{ username }}</strong>.
+                </p>
+
+                <form method="POST" action="{{ url_for('dashboard.verify_2fa') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        <label for="totp_code"><i class="fas fa-key"></i> Authentication Code</label>
+                        {{ form.totp_code(class="form-control form-control-lg text-center", placeholder="000000", maxlength="6", autocomplete="off", inputmode="numeric", pattern="[0-9]*", autofocus=true) }}
+                        {% for error in form.totp_code.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Verify & Login
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center text-muted mt-3">
+            <a href="{{ url_for('dashboard.cancel_2fa') }}"><i class="fas fa-arrow-left"></i> Cancel and return to login</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

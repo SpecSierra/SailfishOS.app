@@ -1,0 +1,70 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Set Up Two-Factor Authentication - Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-shield-alt" aria-hidden="true"></i> Set Up Two-Factor Authentication</h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-mobile-alt" aria-hidden="true"></i> Authenticator App Setup
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle" aria-hidden="true"></i>
+                    Two-factor authentication adds an extra layer of security to your account by requiring a code from your phone in addition to your password.
+                </div>
+
+                <h5 class="mt-4">Step 1: Scan QR Code</h5>
+                <p class="text-muted">Use an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to scan this QR code:</p>
+
+                <div class="text-center my-4">
+                    {% if qr_code %}
+                    <img src="{{ qr_code }}" alt="TOTP QR Code" class="img-fluid" style="max-width: 256px;">
+                    {% else %}
+                    <p class="text-danger">Could not generate QR code.</p>
+                    {% endif %}
+                </div>
+
+                <h5>Step 2: Or Enter Code Manually</h5>
+                <p class="text-muted">If you can't scan the QR code, enter this secret key manually:</p>
+                <div class="bg-light p-3 rounded text-center mb-4">
+                    <code class="text-dark" style="font-size: 1.1rem; letter-spacing: 2px;">{{ secret }}</code>
+                </div>
+
+                <h5>Step 3: Verify Setup</h5>
+                <p class="text-muted">Enter the 6-digit code from your authenticator app to verify the setup:</p>
+
+                <form method="POST" action="{{ url_for('dashboard.setup_2fa') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        {{ form.totp_code(class="form-control form-control-lg text-center", placeholder="000000", maxlength="6", autocomplete="off", inputmode="numeric", pattern="[0-9]*") }}
+                        {% for error in form.totp_code.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard.cancel_2fa_setup') }}" class="btn btn-secondary">
+                            <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check" aria-hidden="true"></i> Enable 2FA
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <strong>Important:</strong> Make sure to save a backup of your secret key. If you lose access to your authenticator app, you will need this to recover your account.
+        </div>
+    </div>
+</div>
+{% endblock %}

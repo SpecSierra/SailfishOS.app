@@ -27,6 +27,27 @@
             </div>
         </div>
 
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="fas fa-shield-alt" aria-hidden="true"></i> Two-Factor Authentication
+            </div>
+            <div class="card-body">
+                {% if current_user.totp_enabled %}
+                <p class="text-success"><i class="fas fa-check-circle" aria-hidden="true"></i> 2FA is <strong>enabled</strong></p>
+                <p class="text-muted small">Your account is protected with an authenticator app.</p>
+                <a href="{{ url_for('dashboard.disable_2fa') }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-unlock" aria-hidden="true"></i> Disable 2FA
+                </a>
+                {% else %}
+                <p class="text-warning"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> 2FA is <strong>not enabled</strong></p>
+                <p class="text-muted small">Add an extra layer of security to your account.</p>
+                <a href="{{ url_for('dashboard.setup_2fa') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-lock" aria-hidden="true"></i> Enable 2FA
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="card mt-3 border-danger">
             <div class="card-header bg-danger text-white">
                 <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Danger Zone

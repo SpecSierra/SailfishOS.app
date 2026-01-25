@@ -7,3 +7,9 @@ requests==2.31.0
 beautifulsoup4==4.12.3
 gunicorn==21.2.0
 python-dotenv==1.0.0
+# Two-Factor Authentication (TOTP)
+pyotp==2.9.0
+qrcode[pil]==7.4.2
+# Security: Rate limiting and CORS
+Flask-Limiter==3.5.0
+Flask-Cors==4.0.0

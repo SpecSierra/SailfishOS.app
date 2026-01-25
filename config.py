@@ -1,7 +1,13 @@
 import os
+import warnings
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+# Test keys for hCaptcha (used in development only)
+HCAPTCHA_TEST_SITE_KEY = '10000000-ffff-ffff-ffff-000000000001'
+HCAPTCHA_TEST_SECRET_KEY = '0x0000000000000000000000000000000000000000'
 
 
 class Config:
@@ -21,6 +27,21 @@ class Config:
 
     # hCaptcha configuration
     # Get your keys from https://www.hcaptcha.com/
-    HCAPTCHA_SITE_KEY = os.environ.get('HCAPTCHA_SITE_KEY') or '10000000-ffff-ffff-ffff-000000000001'  # Test key
-    HCAPTCHA_SECRET_KEY = os.environ.get('HCAPTCHA_SECRET_KEY') or '0x0000000000000000000000000000000000000000'  # Test key
+    HCAPTCHA_SITE_KEY = os.environ.get('HCAPTCHA_SITE_KEY') or HCAPTCHA_TEST_SITE_KEY
+    HCAPTCHA_SECRET_KEY = os.environ.get('HCAPTCHA_SECRET_KEY') or HCAPTCHA_TEST_SECRET_KEY
     HCAPTCHA_VERIFY_URL = 'https://hcaptcha.com/siteverify'
+
+    # Warn if using test keys in non-development mode
+    if not DEV_MODE:
+        if HCAPTCHA_SITE_KEY == HCAPTCHA_TEST_SITE_KEY:
+            warnings.warn(
+                'SECURITY WARNING: Using test hCaptcha keys in non-development mode. '
+                'Set HCAPTCHA_SITE_KEY and HCAPTCHA_SECRET_KEY environment variables for production.',
+                UserWarning
+            )
+        if SECRET_KEY == 'dev-secret-key-change-in-production':
+            warnings.warn(
+                'SECURITY WARNING: Using default SECRET_KEY in non-development mode. '
+                'Set SECRET_KEY environment variable for production.',
+                UserWarning
+            )

@@ -1,6 +1,25 @@
+import re
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, TextAreaField, BooleanField, IntegerField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, EqualTo, ValidationError
+
+
+def validate_password_complexity(form, field):
+    """Validate password meets complexity requirements."""
+    password = field.data
+    errors = []
+
+    if not re.search(r'[A-Z]', password):
+        errors.append('one uppercase letter')
+    if not re.search(r'[a-z]', password):
+        errors.append('one lowercase letter')
+    if not re.search(r'\d', password):
+        errors.append('one number')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+
+    if errors:
+        raise ValidationError(f'Password must contain at least: {", ".join(errors)}')
 
 
 # Country list for filtering (countries where Jolla phones are sold + common regions)
@@ -183,7 +202,8 @@ class RegistrationForm(FlaskForm):
     ])
     password = PasswordField('Password', validators=[
         DataRequired(),
-        Length(min=8, message='Password must be at least 8 characters')
+        Length(min=8, message='Password must be at least 8 characters'),
+        validate_password_complexity
     ])
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(),
@@ -207,3 +227,40 @@ class AppSubmitForm(FlaskForm):
         # Package names typically have format: com.example.app
         if '.' not in package:
             raise ValidationError('Invalid package name format. Example: com.whatsapp')
+
+
+class TwoFactorSetupForm(FlaskForm):
+    """Form for verifying TOTP code during 2FA setup."""
+    totp_code = StringField('Verification Code', validators=[
+        DataRequired(message='Please enter the 6-digit code from your authenticator app'),
+        Length(min=6, max=6, message='Code must be exactly 6 digits')
+    ])
+
+    def validate_totp_code(self, field):
+        code = field.data.replace(' ', '').replace('-', '')
+        if not code.isdigit():
+            raise ValidationError('Code must contain only digits')
+
+
+class TwoFactorVerifyForm(FlaskForm):
+    """Form for verifying TOTP code during login."""
+    totp_code = StringField('Authentication Code', validators=[
+        DataRequired(message='Please enter the 6-digit code from your authenticator app'),
+        Length(min=6, max=6, message='Code must be exactly 6 digits')
+    ])
+
+    def validate_totp_code(self, field):
+        code = field.data.replace(' ', '').replace('-', '')
+        if not code.isdigit():
+            raise ValidationError('Code must contain only digits')
+
+
+class TwoFactorDisableForm(FlaskForm):
+    """Form for disabling 2FA (requires password confirmation)."""
+    password = PasswordField('Current Password', validators=[
+        DataRequired(message='Please enter your password to disable 2FA')
+    ])
+    totp_code = StringField('Authentication Code', validators=[
+        DataRequired(message='Please enter the 6-digit code from your authenticator app'),
+        Length(min=6, max=6, message='Code must be exactly 6 digits')
+    ])
