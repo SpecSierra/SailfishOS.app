@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from app import login_manager, limiter
 from app.models import DataManager, User
@@ -370,6 +370,40 @@ def profile_delete():
     return redirect(url_for('frontend.index'))
 
 
+@dashboard_bp.route('/profile/export-data')
+@login_required
+@check_not_banned
+def profile_export_data():
+    """Export all user data for GDPR compliance."""
+    export_data = DataManager.export_user_data(current_user.id)
+
+    if not export_data:
+        flash('Could not export your data. Please try again.', 'danger')
+        return redirect(url_for('dashboard.profile'))
+
+    # Log the export action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='data_export',
+        entity_type='user',
+        entity_id=current_user.id,
+        old_data=None,
+        new_data={'export_date': export_data['export_date']},
+        description='User requested data export (GDPR)'
+    )
+
+    # Return as downloadable JSON file
+    response = Response(
+        json.dumps(export_data, indent=2, ensure_ascii=False),
+        mimetype='application/json',
+        headers={
+            'Content-Disposition': f'attachment; filename=sailfishos_data_export_{current_user.username}_{datetime.utcnow().strftime("%Y%m%d")}.json'
+        }
+    )
+    return response
+
+
 # ============ Two-Factor Authentication (2FA) ============
 
 @dashboard_bp.route('/profile/2fa/setup', methods=['GET', 'POST'])
@@ -490,10 +524,31 @@ def cancel_2fa_setup():
 @login_required
 @check_not_banned
 def apps_list():
-    apps = DataManager.get_apps()
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Limit apps per page
+
+    category_filter = request.args.get('category', '')
+
+    # Get paginated apps
+    apps, total = DataManager.get_apps_paginated(
+        page=page,
+        per_page=per_page,
+        category_filter=category_filter if category_filter else None
+    )
+
     categories = DataManager.get_categories()
     category_map = {c['slug']: c for c in categories}
-    return render_template('dashboard/apps_list.html', apps=apps, category_map=category_map)
+
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template(
+        'dashboard/apps_list.html',
+        apps=apps,
+        category_map=category_map,
+        page=page,
+        total_pages=total_pages,
+        total=total
+    )
 
 
 @dashboard_bp.route('/apps/add', methods=['GET', 'POST'])
@@ -818,17 +873,37 @@ def categories_delete(slug):
 @login_required
 @check_not_banned
 def reports_list():
-    reports = DataManager.get_reports()
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Limit reports per page
+
     apps = DataManager.get_apps()
     app_map = {app['id']: app for app in apps}
 
     # Regular users only see their own reports
     # Moderators and admins see all reports
     if not check_permission(current_user, CAN_DELETE_REPORT):
-        reports = [r for r in reports if r.get('user_id') == current_user.id]
+        reports, total = DataManager.get_reports_paginated(
+            page=page,
+            per_page=per_page,
+            user_id=current_user.id
+        )
+    else:
+        reports, total = DataManager.get_reports_paginated(
+            page=page,
+            per_page=per_page,
+            user_id=None
+        )
 
-    reports = sorted(reports, key=lambda r: r.get('created_at', ''), reverse=True)
-    return render_template('dashboard/reports_list.html', reports=reports, app_map=app_map)
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template(
+        'dashboard/reports_list.html',
+        reports=reports,
+        app_map=app_map,
+        page=page,
+        total_pages=total_pages,
+        total=total
+    )
 
 
 @dashboard_bp.route('/reports/delete/<report_id>', methods=['POST'])
@@ -1127,22 +1202,31 @@ def fetch_all_info():
 @check_not_banned
 @has_permission(CAN_MANAGE_USERS)
 def users_list():
-    """Admin view to manage users."""
-    users = DataManager.get_users()
+    """Admin view to manage users with pagination."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Limit users per page to prevent performance issues
 
-    # Apply role filter
+    # Get filters
     role_filter = request.args.get('role', '')
-    if role_filter and role_filter in ('user', 'moderator', 'admin'):
-        users = [u for u in users if u.role == role_filter]
-
-    # Apply status filter
     status_filter = request.args.get('status', '')
-    if status_filter == 'active':
-        users = [u for u in users if not u.is_banned]
-    elif status_filter == 'banned':
-        users = [u for u in users if u.is_banned]
 
-    return render_template('dashboard/users_list.html', users=users)
+    # Get paginated users
+    users, total = DataManager.get_users_paginated(
+        page=page,
+        per_page=per_page,
+        role_filter=role_filter if role_filter else None,
+        status_filter=status_filter if status_filter else None
+    )
+
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template(
+        'dashboard/users_list.html',
+        users=users,
+        page=page,
+        total_pages=total_pages,
+        total=total
+    )
 
 
 @dashboard_bp.route('/users/ban/<user_id>', methods=['POST'])

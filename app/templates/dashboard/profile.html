@@ -24,6 +24,11 @@
                     <span class="badge badge-info">User</span>
                     {% endif %}
                 </p>
+                <hr>
+                <a href="{{ url_for('dashboard.profile_export_data') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-download" aria-hidden="true"></i> Export My Data
+                </a>
+                <p class="text-muted small mt-2 mb-0">Download all your data (GDPR compliance)</p>
             </div>
         </div>
 

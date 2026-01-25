@@ -4,7 +4,7 @@
 
 {% block dashboard_content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-users" aria-hidden="true"></i> Users</h1>
+    <h1 class="h2"><i class="fas fa-users" aria-hidden="true"></i> Users <small class="text-muted">({{ total }} total)</small></h1>
 </div>
 
 <!-- Filters -->
@@ -135,6 +135,49 @@
         </tbody>
     </table>
 </div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<nav aria-label="Users pagination">
+    <ul class="pagination justify-content-center">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('dashboard.users_list', page=page-1, role=request.args.get('role', ''), status=request.args.get('status', '')) }}">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i> Previous
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link"><i class="fas fa-chevron-left" aria-hidden="true"></i> Previous</span>
+        </li>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+            {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('dashboard.users_list', page=p, role=request.args.get('role', ''), status=request.args.get('status', '')) }}">{{ p }}</a>
+            </li>
+            {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('dashboard.users_list', page=page+1, role=request.args.get('role', ''), status=request.args.get('status', '')) }}">
+                Next <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Next <i class="fas fa-chevron-right" aria-hidden="true"></i></span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% else %}
 <div class="empty-state">
     <i class="fas fa-users" aria-hidden="true"></i>

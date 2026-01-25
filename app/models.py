@@ -11,6 +11,100 @@ from flask import current_app
 
 ph = PasswordHasher()
 
+# Input validation constants
+MAX_USERNAME_LENGTH = 50
+MAX_EMAIL_LENGTH = 255
+MAX_APP_NAME_LENGTH = 100
+MAX_PACKAGE_NAME_LENGTH = 150
+MAX_DESCRIPTION_LENGTH = 500
+MAX_URL_LENGTH = 500
+MAX_CATEGORY_NAME_LENGTH = 50
+MAX_NOTES_LENGTH = 2000
+
+
+def validate_string_length(value, max_length, field_name):
+    """Validate string length and truncate if necessary."""
+    if value is None:
+        return value
+    if not isinstance(value, str):
+        value = str(value)
+    if len(value) > max_length:
+        # Log warning but don't fail - truncate instead
+        import logging
+        logging.getLogger(__name__).warning(
+            f'{field_name} exceeded max length ({len(value)} > {max_length}), truncating'
+        )
+        return value[:max_length]
+    return value
+
+
+def sanitize_app_data(app_data):
+    """Sanitize and validate app data before saving."""
+    if not isinstance(app_data, dict):
+        raise ValueError("App data must be a dictionary")
+
+    sanitized = dict(app_data)
+
+    # Validate and truncate string fields
+    if 'android_name' in sanitized:
+        sanitized['android_name'] = validate_string_length(
+            sanitized['android_name'], MAX_APP_NAME_LENGTH, 'android_name'
+        )
+    if 'android_package' in sanitized:
+        sanitized['android_package'] = validate_string_length(
+            sanitized['android_package'], MAX_PACKAGE_NAME_LENGTH, 'android_package'
+        )
+    if 'android_description' in sanitized:
+        sanitized['android_description'] = validate_string_length(
+            sanitized['android_description'], MAX_DESCRIPTION_LENGTH, 'android_description'
+        )
+    if 'android_icon_url' in sanitized:
+        sanitized['android_icon_url'] = validate_string_length(
+            sanitized['android_icon_url'], MAX_URL_LENGTH, 'android_icon_url'
+        )
+    if 'native_name' in sanitized:
+        sanitized['native_name'] = validate_string_length(
+            sanitized['native_name'], MAX_APP_NAME_LENGTH, 'native_name'
+        )
+    if 'native_store_url' in sanitized:
+        sanitized['native_store_url'] = validate_string_length(
+            sanitized['native_store_url'], MAX_URL_LENGTH, 'native_store_url'
+        )
+
+    return sanitized
+
+
+def sanitize_report_data(report_data):
+    """Sanitize and validate report data before saving."""
+    if not isinstance(report_data, dict):
+        raise ValueError("Report data must be a dictionary")
+
+    sanitized = dict(report_data)
+
+    # Validate and truncate string fields
+    if 'reporter_name' in sanitized:
+        sanitized['reporter_name'] = validate_string_length(
+            sanitized['reporter_name'], MAX_USERNAME_LENGTH, 'reporter_name'
+        )
+    if 'notes' in sanitized:
+        sanitized['notes'] = validate_string_length(
+            sanitized['notes'], MAX_NOTES_LENGTH, 'notes'
+        )
+    if 'app_version' in sanitized:
+        sanitized['app_version'] = validate_string_length(
+            sanitized['app_version'], 50, 'app_version'
+        )
+    if 'device' in sanitized:
+        sanitized['device'] = validate_string_length(
+            sanitized['device'], 100, 'device'
+        )
+    if 'sailfish_version' in sanitized:
+        sanitized['sailfish_version'] = validate_string_length(
+            sanitized['sailfish_version'], 50, 'sailfish_version'
+        )
+
+    return sanitized
+
 
 class FileLock:
     """Context manager for file locking to prevent race conditions."""
@@ -175,6 +269,8 @@ class DataManager:
     @classmethod
     def add_app(cls, app_data):
         apps = cls.get_apps()
+        # Sanitize input data
+        app_data = sanitize_app_data(app_data)
         app_data['id'] = str(uuid.uuid4())
         app_data['created_at'] = datetime.utcnow().isoformat()
         app_data['updated_at'] = datetime.utcnow().isoformat()
@@ -185,6 +281,8 @@ class DataManager:
     @classmethod
     def update_app(cls, app_id, app_data):
         apps = cls.get_apps()
+        # Sanitize input data
+        app_data = sanitize_app_data(app_data)
         for i, app in enumerate(apps):
             if app['id'] == app_id:
                 app_data['id'] = app_id
@@ -398,6 +496,8 @@ class DataManager:
     @classmethod
     def add_report(cls, report_data):
         reports = cls.get_reports()
+        # Sanitize input data
+        report_data = sanitize_report_data(report_data)
         report_data['id'] = str(uuid.uuid4())
         report_data['created_at'] = datetime.utcnow().isoformat()
         reports.append(report_data)
@@ -446,3 +546,122 @@ class DataManager:
             cls._decrement_app_reports_count(app_id)
 
         return True
+
+    # GDPR Data Export Methods
+    @classmethod
+    def export_user_data(cls, user_id):
+        """
+        Export all data associated with a user for GDPR compliance.
+        Returns a dictionary containing all user data that can be downloaded.
+        """
+        user = cls.get_user_by_id(user_id)
+        if not user:
+            return None
+
+        # Get user's reports
+        user_reports = cls.get_reports_for_user(user_id)
+
+        # Get apps data to include app names in reports
+        apps = cls.get_apps()
+        app_map = {app['id']: app.get('android_name', 'Unknown App') for app in apps}
+
+        # Enrich reports with app names
+        enriched_reports = []
+        for report in user_reports:
+            enriched_report = dict(report)
+            enriched_report['app_name'] = app_map.get(report.get('app_id'), 'Unknown App')
+            # Remove internal user_id from export
+            enriched_report.pop('user_id', None)
+            enriched_reports.append(enriched_report)
+
+        export_data = {
+            'export_date': datetime.utcnow().isoformat(),
+            'export_format_version': '1.0',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+                'account_status': 'banned' if user.is_banned else 'active',
+                'two_factor_enabled': user.totp_enabled,
+            },
+            'reports': enriched_reports,
+            'reports_count': len(enriched_reports),
+        }
+
+        return export_data
+
+    @classmethod
+    def get_users_paginated(cls, page=1, per_page=50, role_filter=None, status_filter=None):
+        """
+        Get users with pagination and filtering.
+        Returns (users, total_count).
+        """
+        users = cls.get_users()
+
+        # Apply role filter
+        if role_filter and role_filter in ('user', 'moderator', 'admin'):
+            users = [u for u in users if u.role == role_filter]
+
+        # Apply status filter
+        if status_filter == 'active':
+            users = [u for u in users if not u.is_banned]
+        elif status_filter == 'banned':
+            users = [u for u in users if u.is_banned]
+
+        total = len(users)
+
+        # Apply pagination
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_users = users[start:end]
+
+        return paginated_users, total
+
+    @classmethod
+    def get_reports_paginated(cls, page=1, per_page=50, user_id=None):
+        """
+        Get reports with pagination and optional user filter.
+        Returns (reports, total_count).
+        """
+        reports = cls.get_reports()
+
+        # Apply user filter
+        if user_id:
+            reports = [r for r in reports if r.get('user_id') == user_id]
+
+        # Sort by created_at descending
+        reports = sorted(reports, key=lambda r: r.get('created_at', ''), reverse=True)
+
+        total = len(reports)
+
+        # Apply pagination
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_reports = reports[start:end]
+
+        return paginated_reports, total
+
+    @classmethod
+    def get_apps_paginated(cls, page=1, per_page=50, category_filter=None):
+        """
+        Get apps with pagination and optional category filter.
+        Returns (apps, total_count).
+        """
+        apps = cls.get_apps()
+
+        # Apply category filter
+        if category_filter:
+            apps = [a for a in apps if a.get('category') == category_filter]
+
+        # Sort alphabetically
+        apps = sorted(apps, key=lambda a: a.get('android_name', '').lower())
+
+        total = len(apps)
+
+        # Apply pagination
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_apps = apps[start:end]
+
+        return paginated_apps, total

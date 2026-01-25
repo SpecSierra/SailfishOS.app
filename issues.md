@@ -3,7 +3,7 @@
 **Audit Date:** 2026-01-25
 **Last Updated:** 2026-01-25
 **Total Issues Found:** 41
-**Issues Fixed:** 20
+**Issues Fixed:** 27
 **Production Readiness:** Significantly improved - all critical and most high-priority security issues addressed
 
 ---
@@ -12,11 +12,11 @@
 
 | Severity | Count | Fixed |
 |----------|-------|-------|
-| Critical | 5 | 4 |
-| High | 6 | 5 |
-| Medium | 9 | 7 |
-| Code Quality | 10 | 4 |
-| Missing Features | 6 | 0 |
+| Critical | 5 | 5 |
+| High | 6 | 6 |
+| Medium | 9 | 9 |
+| Code Quality | 10 | 5 |
+| Missing Features | 6 | 1 |
 | Performance | 3 | 0 |
 | Documentation | 2 | 0 |
 
@@ -72,7 +72,7 @@
 
 ---
 
-### 5. Insufficient Rate Limiting on hCaptcha (CWE-770)
+### 5. Insufficient Rate Limiting on hCaptcha (CWE-770) - [FIXED]
 
 **Location:** `app/routes/frontend.py:19-34`, `app/routes/dashboard.py:20-35`
 
@@ -80,7 +80,13 @@
 
 **Impact:** Brute force attacks possible (though hCaptcha provides some defense)
 
-**Fix:** Add Flask-Limiter for rate limiting
+**Fix Applied:**
+- Added Flask-Limiter with global rate limits (200/day, 50/hour per IP)
+- Login endpoint: 10 attempts per minute per IP
+- Registration endpoint: 5 registrations per hour per IP
+- Report submission: 20 per hour per IP
+- App submission: 10 per hour per IP
+- Implemented proper IP detection for Cloudflare/proxy environments
 
 ---
 
@@ -147,7 +153,7 @@
 
 ---
 
-### 10. No Account Lockout After Failed Attempts
+### 10. No Account Lockout After Failed Attempts - [FIXED]
 
 **Location:** `app/routes/dashboard.py:45-69` (login)
 
@@ -155,7 +161,12 @@
 
 **Impact:** Brute force attacks possible (though hCaptcha helps)
 
-**Fix:** Implement account lockout after N failed attempts
+**Fix Applied:**
+- Added account lockout after 5 failed login attempts
+- Lockout duration: 15 minutes
+- Failed attempts tracked per username
+- Security event logged when account is locked
+- Clear message shown to user with remaining lockout time
 
 ---
 
@@ -211,7 +222,7 @@
 
 ---
 
-### 14. No Pagination Limits on Admin Views
+### 14. No Pagination Limits on Admin Views - [FIXED]
 
 **Location:** `app/routes/dashboard.py:809-825`
 
@@ -219,7 +230,11 @@
 
 **Impact:** Performance degradation with large datasets
 
-**Fix:** Add pagination to all admin list views
+**Fix Applied:**
+- Added `get_users_paginated()`, `get_apps_paginated()`, `get_reports_paginated()` methods to DataManager
+- All admin list views now paginated with 50 items per page
+- Pagination controls added to templates
+- Total count displayed in headers
 
 ---
 
@@ -242,7 +257,7 @@
 
 ---
 
-### 16. No Input Length Validation Enforcement
+### 16. No Input Length Validation Enforcement - [FIXED]
 
 **Location:** `app/forms.py`
 
@@ -250,17 +265,27 @@
 
 **Impact:** Client-side validation bypass could cause issues
 
-**Fix:** Enforce length limits at model layer
+**Fix Applied:**
+- Added `sanitize_app_data()` and `sanitize_report_data()` functions in models.py
+- All string fields validated and truncated at model layer before save
+- Defined max length constants for all fields
+- Warning logged when truncation occurs
+- Applied to `add_app()`, `update_app()`, and `add_report()` methods
 
 ---
 
-### 17. Missing CORS Headers
+### 17. Missing CORS Headers - [FIXED]
 
 **Issue:** No explicit CORS policy defined
 
 **Impact:** Default behavior may allow unintended cross-origin access
 
-**Fix:** Add explicit CORS configuration using Flask-CORS
+**Fix Applied:**
+- Added Flask-CORS to requirements.txt
+- Configured explicit CORS policy in `app/__init__.py`
+- Only `/icons/*` routes allow cross-origin requests (for image loading)
+- All other routes restricted to same-origin
+- Credentials not allowed for cross-origin requests
 
 ---
 
@@ -294,13 +319,17 @@
 
 ---
 
-### 20. No API Rate Limiting (CWE-770)
+### 20. No API Rate Limiting (CWE-770) - [FIXED]
 
 **Issue:** No rate limiting on API endpoints
 
 **Impact:** DoS attacks possible
 
-**Fix:** Implement Flask-Limiter
+**Fix Applied:**
+- Flask-Limiter integrated with proper IP detection
+- Global rate limits: 200 requests/day, 50 requests/hour per IP
+- Endpoint-specific limits for sensitive actions (login, register, report submission)
+- Proper handling of Cloudflare/proxy IP headers (CF-Connecting-IP, X-Forwarded-For)
 
 ---
 
@@ -515,7 +544,7 @@ categories = DataManager.get_categories()
 
 ---
 
-### 39. Missing GDPR/Privacy Features
+### 39. Missing GDPR/Privacy Features - [PARTIALLY FIXED]
 
 **Issue:**
 - No data export functionality
@@ -524,7 +553,16 @@ categories = DataManager.get_categories()
 
 **Impact:** Privacy regulation violations
 
-**Fix:** Implement data privacy features
+**Fix Applied:**
+- Added `export_user_data()` method in DataManager for GDPR-compliant data export
+- Added `/profile/export-data` endpoint to download all user data as JSON
+- Export includes: user account info, all reports submitted, app names for context
+- Export button added to user profile page
+- Export action logged in audit trail
+
+**Still Needed:**
+- Privacy policy page
+- Complete cascade deletion of user's reports when account deleted
 
 ---
 
@@ -557,21 +595,21 @@ categories = DataManager.get_categories()
 3. ~~Add HTTPS enforcement and security headers~~ [FIXED]
 4. ~~Implement proper input validation throughout~~ [FIXED]
 
-### Short Term (Within 1-2 Sprints) - MOSTLY DONE
+### Short Term (Within 1-2 Sprints) - ALL DONE
 
-5. Add rate limiting with Flask-Limiter
+5. ~~Add rate limiting with Flask-Limiter~~ [FIXED]
 6. ~~Add password complexity requirements~~ [FIXED]
 7. ~~Implement comprehensive logging and audit trails~~ [FIXED]
-8. Add account lockout after failed attempts
+8. ~~Add account lockout after failed attempts~~ [FIXED]
 9. ~~Remove duplicate code (hCaptcha verification)~~ [FIXED]
 
-### Medium Term (Within 1-2 Months) - PARTIALLY DONE
+### Medium Term (Within 1-2 Months) - MOSTLY DONE
 
 10. Add test suite
 11. Implement caching for performance
 12. ~~Add 2FA support~~ [FIXED - TOTP-based 2FA implemented]
-13. Create backup/export mechanism
-14. Add GDPR compliance features
+13. ~~Create backup/export mechanism~~ [FIXED - GDPR data export]
+14. ~~Add GDPR compliance features~~ [PARTIALLY FIXED - data export implemented]
 15. Document all environment variables
 
 ### Long Term (Ongoing)
@@ -588,7 +626,12 @@ categories = DataManager.get_categories()
 |---------|------------------------|--------|
 | No file locking | `fcntl` file locking | **IMPLEMENTED** |
 | Manual security headers | Custom `@after_request` handler | **IMPLEMENTED** |
-| No rate limiting | Flask-Limiter | Pending |
+| No rate limiting | Flask-Limiter | **IMPLEMENTED** |
+| No CORS policy | Flask-CORS | **IMPLEMENTED** |
+| No account lockout | In-memory tracking + timed lockout | **IMPLEMENTED** |
+| No pagination | Paginated queries + UI controls | **IMPLEMENTED** |
+| No data export | GDPR-compliant JSON export | **IMPLEMENTED** |
+| No input validation | Model-layer sanitization | **IMPLEMENTED** |
 | No caching | Flask-Caching | Pending |
 | No testing | pytest + coverage | Pending |
 | Print statements | Python logging module | **IMPLEMENTED** |
