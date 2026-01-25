@@ -3,11 +3,15 @@ import os
 import uuid
 import fcntl
 import tempfile
+import logging
 from datetime import datetime
 from flask_login import UserMixin
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import current_app
+
+# Configure module logger for database operations
+db_logger = logging.getLogger('sailfishos.db')
 
 ph = PasswordHasher()
 
@@ -217,16 +221,36 @@ class DataManager:
     def _load_json(filepath):
         """Load JSON data from file with file locking to prevent race conditions."""
         if not os.path.exists(filepath):
+            db_logger.debug(f'File not found, returning empty dict: {os.path.basename(filepath)}')
             return {}
-        with FileLock(filepath):
-            with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        try:
+            with FileLock(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    db_logger.debug(f'Loaded data from: {os.path.basename(filepath)}')
+                    return data
+        except json.JSONDecodeError as e:
+            db_logger.error(f'JSON decode error in {os.path.basename(filepath)}: {e}')
+            raise
+        except Exception as e:
+            db_logger.error(f'Error loading {os.path.basename(filepath)}: {e}')
+            raise
 
     @staticmethod
     def _save_json(filepath, data):
         """Save JSON data to file with atomic write and file locking."""
         # Get directory for temp file
         dir_path = os.path.dirname(filepath)
+        filename = os.path.basename(filepath)
+
+        # Log the operation
+        record_count = 0
+        if isinstance(data, dict):
+            for key in ['apps', 'categories', 'reports', 'users', 'logs']:
+                if key in data and isinstance(data[key], list):
+                    record_count = len(data[key])
+                    break
+
         with FileLock(filepath):
             # Write to temp file first (atomic write pattern)
             fd, temp_path = tempfile.mkstemp(dir=dir_path, suffix='.tmp')
@@ -235,7 +259,9 @@ class DataManager:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 # Atomic rename (on POSIX systems)
                 os.replace(temp_path, filepath)
-            except Exception:
+                db_logger.info(f'Saved {record_count} records to: {filename}')
+            except Exception as e:
+                db_logger.error(f'Error saving to {filename}: {e}')
                 # Clean up temp file on error
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
@@ -376,6 +402,18 @@ class DataManager:
                 cls.save_users(users)
                 return user
         return None
+
+    @classmethod
+    def update_user_password(cls, user_id, new_password_hash):
+        """Update a user's password hash."""
+        users = cls.get_users()
+        for i, user in enumerate(users):
+            if user.id == user_id:
+                user.password_hash = new_password_hash
+                users[i] = user
+                cls.save_users(users)
+                return True
+        return False
 
     @classmethod
     def get_reports_for_user(cls, user_id):
@@ -547,6 +585,42 @@ class DataManager:
 
         return True
 
+    @classmethod
+    def delete_reports_by_user(cls, user_id):
+        """
+        Delete all reports submitted by a user (GDPR cascade deletion).
+        Returns the count of deleted reports.
+        """
+        reports = cls.get_reports()
+        user_reports = [r for r in reports if r.get('user_id') == user_id]
+        deleted_count = len(user_reports)
+
+        if deleted_count == 0:
+            return 0
+
+        # Track app_ids to update counts
+        app_ids_to_update = {}
+        for report in user_reports:
+            app_id = report.get('app_id')
+            if app_id:
+                app_ids_to_update[app_id] = app_ids_to_update.get(app_id, 0) + 1
+
+        # Remove user's reports
+        remaining_reports = [r for r in reports if r.get('user_id') != user_id]
+        cls.save_reports(remaining_reports)
+
+        # Update app report counts
+        if app_ids_to_update:
+            apps = cls.get_apps()
+            for i, app in enumerate(apps):
+                if app['id'] in app_ids_to_update:
+                    current_count = app.get('reports_count', 0)
+                    apps[i]['reports_count'] = max(0, current_count - app_ids_to_update[app['id']])
+                    apps[i]['updated_at'] = datetime.utcnow().isoformat()
+            cls.save_apps(apps)
+
+        return deleted_count
+
     # GDPR Data Export Methods
     @classmethod
     def export_user_data(cls, user_id):
@@ -665,3 +739,86 @@ class DataManager:
         paginated_apps = apps[start:end]
 
         return paginated_apps, total
+
+    # Admin Backup Methods
+    @classmethod
+    def export_full_backup(cls):
+        """
+        Export all data for admin backup purposes.
+        Returns a dictionary containing all system data.
+        Sensitive data (password hashes, TOTP secrets) are excluded.
+        """
+        apps = cls.get_apps()
+        categories = cls.get_categories()
+        reports = cls.get_reports()
+        users = cls.get_users()
+
+        # Sanitize user data - remove sensitive fields
+        safe_users = []
+        for user in users:
+            safe_users.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+                'is_banned': user.is_banned,
+                'totp_enabled': user.totp_enabled,
+                # Exclude: password_hash, totp_secret
+            })
+
+        backup_data = {
+            'backup_date': datetime.utcnow().isoformat(),
+            'backup_format_version': '1.0',
+            'statistics': {
+                'apps_count': len(apps),
+                'categories_count': len(categories),
+                'reports_count': len(reports),
+                'users_count': len(users),
+            },
+            'apps': apps,
+            'categories': categories,
+            'reports': reports,
+            'users': safe_users,
+        }
+
+        return backup_data
+
+    @classmethod
+    def validate_rollback_data(cls, entity_type, old_data):
+        """
+        Validate that rollback data is safe to restore.
+        Returns (is_valid, error_message).
+        """
+        if old_data is None:
+            return False, "No data to restore"
+
+        if not isinstance(old_data, dict):
+            return False, "Invalid data format"
+
+        if entity_type == 'app':
+            # Validate required app fields
+            required_fields = ['android_name']
+            for field in required_fields:
+                if field not in old_data:
+                    return False, f"Missing required field: {field}"
+            # Validate field lengths
+            if len(old_data.get('android_name', '')) > 100:
+                return False, "App name too long"
+            if len(old_data.get('android_package', '')) > 150:
+                return False, "Package name too long"
+
+        elif entity_type == 'category':
+            required_fields = ['name', 'slug']
+            for field in required_fields:
+                if field not in old_data:
+                    return False, f"Missing required field: {field}"
+            if len(old_data.get('name', '')) > 50:
+                return False, "Category name too long"
+
+        elif entity_type == 'report':
+            required_fields = ['app_id']
+            for field in required_fields:
+                if field not in old_data:
+                    return False, f"Missing required field: {field}"
+
+        return True, None

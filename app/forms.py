@@ -22,6 +22,57 @@ def validate_password_complexity(form, field):
         raise ValidationError(f'Password must contain at least: {", ".join(errors)}')
 
 
+def validate_package_name(form, field):
+    """Validate Android package name format."""
+    if not field.data:
+        return  # Optional field
+
+    package = field.data.strip()
+
+    # Check basic format: must have at least one dot
+    if '.' not in package:
+        raise ValidationError('Package name must be in format: com.example.app')
+
+    # Check for valid characters (letters, numbers, dots, underscores)
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9_.]*[a-zA-Z0-9]$', package):
+        raise ValidationError('Package name contains invalid characters')
+
+    # Check for path traversal attempts
+    if '..' in package or '/' in package or '\\' in package:
+        raise ValidationError('Invalid package name format')
+
+    # Check each segment
+    segments = package.split('.')
+    if len(segments) < 2:
+        raise ValidationError('Package name must have at least 2 segments (e.g., com.example)')
+
+    for segment in segments:
+        if not segment:
+            raise ValidationError('Package name cannot have empty segments')
+        if segment[0].isdigit():
+            raise ValidationError('Package name segments cannot start with a number')
+
+
+def validate_url(form, field):
+    """Validate URL format (if provided)."""
+    if not field.data:
+        return  # Optional field
+
+    url = field.data.strip()
+
+    # Basic URL pattern check
+    url_pattern = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or ip
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+    if not url_pattern.match(url):
+        raise ValidationError('Please enter a valid URL (must start with http:// or https://)')
+
+
 # Country list for filtering (countries where Jolla phones are sold + common regions)
 COUNTRIES = [
     ('', 'All Countries'),
@@ -110,20 +161,41 @@ class LoginForm(FlaskForm):
 
 
 class AppForm(FlaskForm):
-    android_name = StringField('Android App Name', validators=[DataRequired(), Length(max=100)])
-    android_package = StringField('Package Name', validators=[Optional(), Length(max=150)])
-    android_description = TextAreaField('Description', validators=[Optional(), Length(max=500)])
-    android_icon_url = StringField('Icon URL', validators=[Optional(), Length(max=500)])
+    android_name = StringField('Android App Name', validators=[
+        DataRequired(message='App name is required'),
+        Length(min=1, max=100, message='App name must be between 1 and 100 characters')
+    ])
+    android_package = StringField('Package Name', validators=[
+        Optional(),
+        Length(max=150, message='Package name cannot exceed 150 characters'),
+        validate_package_name
+    ])
+    android_description = TextAreaField('Description', validators=[
+        Optional(),
+        Length(max=500, message='Description cannot exceed 500 characters')
+    ])
+    android_icon_url = StringField('Icon URL', validators=[
+        Optional(),
+        Length(max=500, message='URL cannot exceed 500 characters'),
+        validate_url
+    ])
 
-    category = SelectField('Category', validators=[DataRequired()])
+    category = SelectField('Category', validators=[DataRequired(message='Please select a category')])
 
     # Country/region (multi-select)
     countries = SelectMultipleField('Countries/Regions', choices=COUNTRIES[1:], validators=[Optional()])
 
     # Multiple native apps support (JSON text area for flexibility)
     native_exists = BooleanField('Native App Exists')
-    native_name = StringField('Native App Name', validators=[Optional(), Length(max=100)])
-    native_store_url = StringField('Store URL', validators=[Optional(), Length(max=500)])
+    native_name = StringField('Native App Name', validators=[
+        Optional(),
+        Length(max=100, message='Native app name cannot exceed 100 characters')
+    ])
+    native_store_url = StringField('Store URL', validators=[
+        Optional(),
+        Length(max=500, message='URL cannot exceed 500 characters'),
+        validate_url
+    ])
     native_rating = SelectField('Native App Rating', choices=[
         ('none', 'Not Rated'),
         ('platinum', 'Platinum - Feature complete'),
@@ -132,7 +204,10 @@ class AppForm(FlaskForm):
         ('bronze', 'Bronze - Limited functionality'),
     ], default='none')
     # Additional native apps (JSON format for multiple entries)
-    additional_native_apps = TextAreaField('Additional Native Apps (JSON)', validators=[Optional(), Length(max=2000)])
+    additional_native_apps = TextAreaField('Additional Native Apps (JSON)', validators=[
+        Optional(),
+        Length(max=2000, message='Additional apps JSON cannot exceed 2000 characters')
+    ])
 
 
 class SearchForm(FlaskForm):
@@ -263,4 +338,20 @@ class TwoFactorDisableForm(FlaskForm):
     totp_code = StringField('Authentication Code', validators=[
         DataRequired(message='Please enter the 6-digit code from your authenticator app'),
         Length(min=6, max=6, message='Code must be exactly 6 digits')
+    ])
+
+
+class PasswordChangeForm(FlaskForm):
+    """Form for changing password (for logged-in users)."""
+    current_password = PasswordField('Current Password', validators=[
+        DataRequired(message='Please enter your current password')
+    ])
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(message='Please enter a new password'),
+        Length(min=8, message='Password must be at least 8 characters'),
+        validate_password_complexity
+    ])
+    confirm_password = PasswordField('Confirm New Password', validators=[
+        DataRequired(message='Please confirm your new password'),
+        EqualTo('new_password', message='Passwords must match')
     ])

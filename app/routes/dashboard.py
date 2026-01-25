@@ -8,7 +8,7 @@ from app.models import DataManager, User
 from app.forms import (
     LoginForm, AppForm, CategoryForm, RegistrationForm, ReportForm,
     TwoFactorSetupForm, TwoFactorVerifyForm, TwoFactorDisableForm,
-    SUPPORTED_DEVICES, SFOS_VERSIONS
+    PasswordChangeForm, SUPPORTED_DEVICES, SFOS_VERSIONS
 )
 from app.utils import (
     fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info,
@@ -356,17 +356,32 @@ def profile():
 @login_required
 @check_not_banned
 def profile_delete():
-    """Delete user account."""
+    """Delete user account and all associated data (GDPR compliance)."""
     user_id = current_user.id
     username = current_user.username
+
+    # Log the deletion before we lose access to user info
+    LogManager.log_action(
+        user_id=user_id,
+        username=username,
+        action='account_deleted',
+        entity_type='user',
+        entity_id=user_id,
+        old_data={'username': username},
+        new_data=None,
+        description=f'User self-deleted account: {username}'
+    )
 
     # Logout first
     logout_user()
 
+    # Delete all user's reports (GDPR cascade deletion)
+    deleted_reports = DataManager.delete_reports_by_user(user_id)
+
     # Delete the user
     DataManager.delete_user(user_id)
 
-    flash(f'Account "{username}" has been deleted.', 'info')
+    flash(f'Account "{username}" and {deleted_reports} associated report(s) have been deleted.', 'info')
     return redirect(url_for('frontend.index'))
 
 
@@ -402,6 +417,48 @@ def profile_export_data():
         }
     )
     return response
+
+
+# ============ Password Change ============
+
+@dashboard_bp.route('/profile/change-password', methods=['GET', 'POST'])
+@login_required
+@check_not_banned
+def change_password():
+    """Allow users to change their password."""
+    form = PasswordChangeForm()
+
+    if form.validate_on_submit():
+        # Verify current password
+        if not current_user.check_password(form.current_password.data):
+            LogManager.log_security_event(
+                LogManager.SECURITY_LOGIN_FAILED,
+                username=current_user.username,
+                description='Failed password change attempt - incorrect current password'
+            )
+            flash('Current password is incorrect.', 'danger')
+            return render_template('dashboard/change_password.html', form=form)
+
+        # Update password
+        from app.models import User
+        new_hash = User.hash_password(form.new_password.data)
+        DataManager.update_user_password(current_user.id, new_hash)
+
+        LogManager.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action='password_changed',
+            entity_type='user',
+            entity_id=current_user.id,
+            old_data=None,
+            new_data=None,  # Don't log password data
+            description='User changed their password'
+        )
+
+        flash('Your password has been changed successfully.', 'success')
+        return redirect(url_for('dashboard.profile'))
+
+    return render_template('dashboard/change_password.html', form=form)
 
 
 # ============ Two-Factor Authentication (2FA) ============
@@ -1334,6 +1391,39 @@ def users_set_role(user_id):
     return redirect(url_for('dashboard.users_list'))
 
 
+# ============ Admin Backup ============
+
+@dashboard_bp.route('/backup')
+@login_required
+@check_not_banned
+@has_permission(CAN_VIEW_LOGS)  # Only admins can create backups
+def admin_backup():
+    """Export all system data for backup purposes."""
+    backup_data = DataManager.export_full_backup()
+
+    # Log the backup action
+    LogManager.log_action(
+        user_id=current_user.id,
+        username=current_user.username,
+        action='backup_created',
+        entity_type='system',
+        entity_id=None,
+        old_data=None,
+        new_data={'backup_date': backup_data['backup_date'], 'statistics': backup_data['statistics']},
+        description=f'Admin created system backup'
+    )
+
+    # Return as downloadable JSON file
+    response = Response(
+        json.dumps(backup_data, indent=2, ensure_ascii=False),
+        mimetype='application/json',
+        headers={
+            'Content-Disposition': f'attachment; filename=sailfishos_backup_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json'
+        }
+    )
+    return response
+
+
 # ============ Audit Logs (Admin Only) ============
 
 @dashboard_bp.route('/logs')
@@ -1384,6 +1474,12 @@ def logs_rollback(log_id):
     entity_type = log.get('entity_type')
     entity_id = log.get('entity_id')
     old_data = log.get('old_data')
+
+    # Validate rollback data before proceeding
+    is_valid, error_message = DataManager.validate_rollback_data(entity_type, old_data)
+    if not is_valid:
+        flash(f'Cannot rollback: {error_message}', 'danger')
+        return redirect(url_for('dashboard.logs_list'))
 
     success = False
 

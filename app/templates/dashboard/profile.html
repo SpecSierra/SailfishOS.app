@@ -34,6 +34,18 @@
 
         <div class="card mt-3">
             <div class="card-header">
+                <i class="fas fa-key" aria-hidden="true"></i> Password
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Change your account password.</p>
+                <a href="{{ url_for('dashboard.change_password') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-key" aria-hidden="true"></i> Change Password
+                </a>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
                 <i class="fas fa-shield-alt" aria-hidden="true"></i> Two-Factor Authentication
             </div>
             <div class="card-body">
