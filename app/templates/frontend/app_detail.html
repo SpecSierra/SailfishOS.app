@@ -341,7 +341,13 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="native-app-group" style="display: none;">
+                            <div class="form-group">
+                                <label for="native_app"><i class="fas fa-ship"></i> Native App</label>
+                                {{ form.native_app(class="form-control", id="native-app-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="works-group">
                             <div class="form-group">
                                 <label for="works"><i class="fas fa-check-circle"></i> Does it work? *</label>
                                 {{ form.works(class="form-control") }}
@@ -355,16 +361,10 @@
                         </div>
                     </div>
 
-                    <div class="row" id="native-app-row" style="display: none;">
-                        <div class="col-md-6" id="native-app-group">
+                    <div class="row" id="custom-native-app-row" style="display: none;">
+                        <div class="col-md-6" id="custom-native-app-group">
                             <div class="form-group">
-                                <label for="native_app"><i class="fas fa-ship"></i> Native App</label>
-                                {{ form.native_app(class="form-control", id="native-app-select") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6" id="custom-native-app-group" style="display: none;">
-                            <div class="form-group">
-                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App</label>
+                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App Name</label>
                                 {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
                             </div>
                         </div>
@@ -488,37 +488,42 @@
 document.addEventListener('DOMContentLoaded', function() {
     var platformSelect = document.getElementById('platform-select');
     var dependencyGroup = document.getElementById('dependency-group');
-    var nativeAppRow = document.getElementById('native-app-row');
+    var nativeAppGroup = document.getElementById('native-app-group');
     var nativeAppSelect = document.getElementById('native-app-select');
-    var customNativeAppGroup = document.getElementById('custom-native-app-group');
+    var customNativeAppRow = document.getElementById('custom-native-app-row');
     var deviceSelect = document.getElementById('device-select');
     var customDeviceGroup = document.getElementById('custom-device-group');
     var sfosSelect = document.getElementById('sfos-select');
     var customSfosGroup = document.getElementById('custom-sfos-group');
 
-    function toggleDependency() {
-        if (platformSelect.value === 'android') {
-            dependencyGroup.style.display = 'block';
-        } else {
-            dependencyGroup.style.display = 'none';
-        }
-    }
+    function togglePlatformFields() {
+        var platform = platformSelect.value;
 
-    function toggleNativeApp() {
-        if (platformSelect.value === 'native') {
-            nativeAppRow.style.display = 'flex';
+        // Android: show Google Services, hide Native App
+        if (platform === 'android') {
+            dependencyGroup.style.display = 'block';
+            nativeAppGroup.style.display = 'none';
+            customNativeAppRow.style.display = 'none';
+        }
+        // Native: show Native App, hide Google Services
+        else if (platform === 'native') {
+            dependencyGroup.style.display = 'none';
+            nativeAppGroup.style.display = 'block';
             toggleCustomNativeApp();
-        } else {
-            nativeAppRow.style.display = 'none';
-            customNativeAppGroup.style.display = 'none';
+        }
+        // Browser or other: hide both
+        else {
+            dependencyGroup.style.display = 'none';
+            nativeAppGroup.style.display = 'none';
+            customNativeAppRow.style.display = 'none';
         }
     }
 
     function toggleCustomNativeApp() {
         if (nativeAppSelect.value === 'custom') {
-            customNativeAppGroup.style.display = 'block';
+            customNativeAppRow.style.display = 'flex';
         } else {
-            customNativeAppGroup.style.display = 'none';
+            customNativeAppRow.style.display = 'none';
         }
     }
 
@@ -539,14 +544,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initial check
-    toggleDependency();
-    toggleNativeApp();
+    togglePlatformFields();
     toggleCustomDevice();
     toggleCustomSfos();
 
     // Listen for changes
-    platformSelect.addEventListener('change', toggleDependency);
-    platformSelect.addEventListener('change', toggleNativeApp);
+    platformSelect.addEventListener('change', togglePlatformFields);
     nativeAppSelect.addEventListener('change', toggleCustomNativeApp);
     deviceSelect.addEventListener('change', toggleCustomDevice);
     sfosSelect.addEventListener('change', toggleCustomSfos);
