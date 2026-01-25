@@ -870,6 +870,16 @@ main {
     margin-bottom: 0;
 }
 
+.page-header .community-notice {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin-top: 0.5rem;
+}
+
+.page-header .community-notice i {
+    margin-right: 0.35rem;
+}
+
 /* Empty state */
 .empty-state {
     text-align: center;
