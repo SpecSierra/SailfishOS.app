@@ -27,58 +27,52 @@
     <!-- Search and Filter Section -->
     <div class="search-section">
         <form method="get" action="{{ url_for('frontend.index') }}">
-            <div class="row mb-2">
-                <div class="col-md-4 mb-2 mb-md-0">
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
-                        </div>
-                        <input type="text" name="q" class="form-control" placeholder="Search apps..." value="{{ request.args.get('q', '') }}" aria-label="Search apps">
+            <div class="search-bar-wrapper">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon" aria-hidden="true"></i>
+                    <input type="text" name="q" class="search-input" placeholder="Search apps..." value="{{ request.args.get('q', '') }}" aria-label="Search apps">
+                </div>
+                <div class="search-filters">
+                    <div class="filter-group">
+                        <select name="category" class="filter-select" aria-label="Filter by category">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.slug }}" {% if request.args.get('category') == cat.slug %}selected{% endif %}>
+                                {{ cat.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
-                <div class="col-md-3 mb-2 mb-md-0">
-                    <select name="category" class="form-control" aria-label="Filter by category">
-                        <option value="">All Categories</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.slug }}" {% if request.args.get('category') == cat.slug %}selected{% endif %}>
-                            {{ cat.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 mb-2 mb-md-0">
-                    <select name="status" class="form-control" aria-label="Filter by status">
-                        <option value="">All Status</option>
-                        <option value="native" {% if request.args.get('status') == 'native' %}selected{% endif %}>Has Native App</option>
-                    </select>
-                </div>
-                <div class="col-md-2 mb-2 mb-md-0">
-                    <select name="country" class="form-control" aria-label="Filter by country">
-                        <option value="">All Countries</option>
-                        <option value="GLOBAL" {% if request.args.get('country') == 'GLOBAL' %}selected{% endif %}>Global / Worldwide</option>
-                        <option value="FI" {% if request.args.get('country') == 'FI' %}selected{% endif %}>Finland</option>
-                        <option value="NO" {% if request.args.get('country') == 'NO' %}selected{% endif %}>Norway</option>
-                        <option value="SE" {% if request.args.get('country') == 'SE' %}selected{% endif %}>Sweden</option>
-                        <option value="DE" {% if request.args.get('country') == 'DE' %}selected{% endif %}>Germany</option>
-                        <option value="FR" {% if request.args.get('country') == 'FR' %}selected{% endif %}>France</option>
-                        <option value="IT" {% if request.args.get('country') == 'IT' %}selected{% endif %}>Italy</option>
-                        <option value="ES" {% if request.args.get('country') == 'ES' %}selected{% endif %}>Spain</option>
-                        <option value="UK" {% if request.args.get('country') == 'UK' %}selected{% endif %}>United Kingdom</option>
-                        <option value="US" {% if request.args.get('country') == 'US' %}selected{% endif %}>United States</option>
-                        <option value="RU" {% if request.args.get('country') == 'RU' %}selected{% endif %}>Russia</option>
-                        <option value="NL" {% if request.args.get('country') == 'NL' %}selected{% endif %}>Netherlands</option>
-                        <option value="PL" {% if request.args.get('country') == 'PL' %}selected{% endif %}>Poland</option>
-                        <option value="CH" {% if request.args.get('country') == 'CH' %}selected{% endif %}>Switzerland</option>
-                        <option value="AT" {% if request.args.get('country') == 'AT' %}selected{% endif %}>Austria</option>
-                        <option value="DK" {% if request.args.get('country') == 'DK' %}selected{% endif %}>Denmark</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-10"></div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary btn-block">
-                        <i class="fas fa-search" aria-hidden="true"></i> Search
+                    <div class="filter-group">
+                        <select name="status" class="filter-select" aria-label="Filter by status">
+                            <option value="">All Status</option>
+                            <option value="native" {% if request.args.get('status') == 'native' %}selected{% endif %}>Has Native App</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select name="country" class="filter-select" aria-label="Filter by country">
+                            <option value="">All Countries</option>
+                            <option value="GLOBAL" {% if request.args.get('country') == 'GLOBAL' %}selected{% endif %}>Global</option>
+                            <option value="FI" {% if request.args.get('country') == 'FI' %}selected{% endif %}>Finland</option>
+                            <option value="NO" {% if request.args.get('country') == 'NO' %}selected{% endif %}>Norway</option>
+                            <option value="SE" {% if request.args.get('country') == 'SE' %}selected{% endif %}>Sweden</option>
+                            <option value="DE" {% if request.args.get('country') == 'DE' %}selected{% endif %}>Germany</option>
+                            <option value="FR" {% if request.args.get('country') == 'FR' %}selected{% endif %}>France</option>
+                            <option value="IT" {% if request.args.get('country') == 'IT' %}selected{% endif %}>Italy</option>
+                            <option value="ES" {% if request.args.get('country') == 'ES' %}selected{% endif %}>Spain</option>
+                            <option value="UK" {% if request.args.get('country') == 'UK' %}selected{% endif %}>UK</option>
+                            <option value="US" {% if request.args.get('country') == 'US' %}selected{% endif %}>USA</option>
+                            <option value="RU" {% if request.args.get('country') == 'RU' %}selected{% endif %}>Russia</option>
+                            <option value="NL" {% if request.args.get('country') == 'NL' %}selected{% endif %}>Netherlands</option>
+                            <option value="PL" {% if request.args.get('country') == 'PL' %}selected{% endif %}>Poland</option>
+                            <option value="CH" {% if request.args.get('country') == 'CH' %}selected{% endif %}>Switzerland</option>
+                            <option value="AT" {% if request.args.get('country') == 'AT' %}selected{% endif %}>Austria</option>
+                            <option value="DK" {% if request.args.get('country') == 'DK' %}selected{% endif %}>Denmark</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="search-btn" aria-label="Search">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span class="search-btn-text">Search</span>
                     </button>
                 </div>
             </div>
