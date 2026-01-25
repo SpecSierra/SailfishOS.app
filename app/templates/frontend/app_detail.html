@@ -341,31 +341,31 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6" id="native-app-group" style="display: none;">
-                            <div class="form-group">
-                                <label for="native_app"><i class="fas fa-ship"></i> Native App</label>
-                                {{ form.native_app(class="form-control", id="native-app-select") }}
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="works"><i class="fas fa-check-circle"></i> Does it work? *</label>
                                 {{ form.works(class="form-control") }}
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6" id="custom-native-app-group" style="display: none;">
-                            <div class="form-group">
-                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App</label>
-                                {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
-                            </div>
-                        </div>
                         <div class="col-md-6" id="dependency-group" style="display: none;">
                             <div class="form-group">
                                 <label for="dependency"><i class="fas fa-cog"></i> Google Services Required?</label>
                                 {{ form.dependency(class="form-control") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="native-app-row" style="display: none;">
+                        <div class="col-md-6" id="native-app-group">
+                            <div class="form-group">
+                                <label for="native_app"><i class="fas fa-ship"></i> Native App</label>
+                                {{ form.native_app(class="form-control", id="native-app-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="custom-native-app-group" style="display: none;">
+                            <div class="form-group">
+                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App</label>
+                                {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
                             </div>
                         </div>
                     </div>
@@ -488,7 +488,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     var platformSelect = document.getElementById('platform-select');
     var dependencyGroup = document.getElementById('dependency-group');
-    var nativeAppGroup = document.getElementById('native-app-group');
+    var nativeAppRow = document.getElementById('native-app-row');
     var nativeAppSelect = document.getElementById('native-app-select');
     var customNativeAppGroup = document.getElementById('custom-native-app-group');
     var deviceSelect = document.getElementById('device-select');
@@ -506,10 +506,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function toggleNativeApp() {
         if (platformSelect.value === 'native') {
-            nativeAppGroup.style.display = 'block';
+            nativeAppRow.style.display = 'flex';
             toggleCustomNativeApp();
         } else {
-            nativeAppGroup.style.display = 'none';
+            nativeAppRow.style.display = 'none';
             customNativeAppGroup.style.display = 'none';
         }
     }
