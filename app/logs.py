@@ -117,8 +117,10 @@ class LogManager:
 
         # Apply filters
         if action_filter:
-            logs = [l for l in logs if l.get('action') == action_filter]
+            # Filter by action (for regular logs) OR event_type (for security events)
+            logs = [l for l in logs if l.get('action') == action_filter or l.get('event_type') == action_filter]
         if entity_type_filter:
+            # Security events don't have entity_type, so exclude them when filtering by entity
             logs = [l for l in logs if l.get('entity_type') == entity_type_filter]
         if user_id_filter:
             logs = [l for l in logs if l.get('user_id') == user_id_filter]
@@ -195,10 +197,14 @@ class LogManager:
             description: Human-readable description
             extra_data: Additional context data
         """
-        # Get client IP address
-        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-        if ip_address and ',' in ip_address:
-            ip_address = ip_address.split(',')[0].strip()
+        # Get client IP address (prefer Cloudflare header, then X-Forwarded-For)
+        ip_address = request.headers.get('CF-Connecting-IP')
+        if not ip_address:
+            ip_address = request.headers.get('X-Forwarded-For')
+            if ip_address and ',' in ip_address:
+                ip_address = ip_address.split(',')[0].strip()
+        if not ip_address:
+            ip_address = request.remote_addr
 
         log_entry = {
             'id': str(uuid.uuid4()),

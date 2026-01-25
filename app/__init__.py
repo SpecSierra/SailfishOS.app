@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import Flask, request
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 
 login_manager = LoginManager()
@@ -12,9 +12,35 @@ login_manager.login_message_category = 'info'
 
 csrf = CSRFProtect()
 
+
+def get_real_client_ip():
+    """
+    Get the real client IP address, handling Cloudflare and other reverse proxies.
+
+    Priority:
+    1. CF-Connecting-IP (Cloudflare's header for the original client IP)
+    2. X-Forwarded-For (standard proxy header, take first IP)
+    3. remote_addr (fallback, will be proxy IP if behind proxy)
+    """
+    # Cloudflare always sets CF-Connecting-IP to the original client IP
+    cf_connecting_ip = request.headers.get('CF-Connecting-IP')
+    if cf_connecting_ip:
+        return cf_connecting_ip.strip()
+
+    # X-Forwarded-For contains: client, proxy1, proxy2, ...
+    # After ProxyFix, remote_addr should be correct, but we check XFF as fallback
+    x_forwarded_for = request.headers.get('X-Forwarded-For')
+    if x_forwarded_for:
+        # Take the first (leftmost) IP which is the original client
+        return x_forwarded_for.split(',')[0].strip()
+
+    # Fallback to remote_addr (will be correct after ProxyFix in production)
+    return request.remote_addr or '127.0.0.1'
+
+
 # Rate limiter for preventing brute force attacks
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_real_client_ip,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://",
 )
@@ -22,6 +48,15 @@ limiter = Limiter(
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # Configure proxy support for production (Cloudflare -> Nginx -> Docker)
+    # This fixes request.remote_addr to use X-Forwarded-For headers
+    if not config_class.DEV_MODE:
+        # x_for=1: Trust 1 proxy for X-Forwarded-For (Nginx)
+        # x_proto=1: Trust 1 proxy for X-Forwarded-Proto (for HTTPS detection)
+        # x_host=1: Trust 1 proxy for X-Forwarded-Host
+        # x_prefix=1: Trust 1 proxy for X-Forwarded-Prefix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # Secure session cookie settings
     app.config.update(

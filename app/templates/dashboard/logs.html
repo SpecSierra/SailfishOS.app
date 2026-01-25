@@ -13,20 +13,38 @@
                 <label for="action" class="form-label">Action Type</label>
                 <select class="form-control" id="action" name="action">
                     <option value="">All Actions</option>
-                    <option value="app_added" {% if request.args.get('action') == 'app_added' %}selected{% endif %}>App Added</option>
-                    <option value="app_edited" {% if request.args.get('action') == 'app_edited' %}selected{% endif %}>App Edited</option>
-                    <option value="app_deleted" {% if request.args.get('action') == 'app_deleted' %}selected{% endif %}>App Deleted</option>
-                    <option value="report_added" {% if request.args.get('action') == 'report_added' %}selected{% endif %}>Report Added</option>
-                    <option value="report_edited" {% if request.args.get('action') == 'report_edited' %}selected{% endif %}>Report Edited</option>
-                    <option value="report_deleted" {% if request.args.get('action') == 'report_deleted' %}selected{% endif %}>Report Deleted</option>
-                    <option value="user_created" {% if request.args.get('action') == 'user_created' %}selected{% endif %}>User Created</option>
-                    <option value="user_role_changed" {% if request.args.get('action') == 'user_role_changed' %}selected{% endif %}>User Role Changed</option>
-                    <option value="user_banned" {% if request.args.get('action') == 'user_banned' %}selected{% endif %}>User Banned</option>
-                    <option value="user_unbanned" {% if request.args.get('action') == 'user_unbanned' %}selected{% endif %}>User Unbanned</option>
-                    <option value="category_added" {% if request.args.get('action') == 'category_added' %}selected{% endif %}>Category Added</option>
-                    <option value="category_edited" {% if request.args.get('action') == 'category_edited' %}selected{% endif %}>Category Edited</option>
-                    <option value="category_deleted" {% if request.args.get('action') == 'category_deleted' %}selected{% endif %}>Category Deleted</option>
-                    <option value="rollback" {% if request.args.get('action') == 'rollback' %}selected{% endif %}>Rollback</option>
+                    <optgroup label="App Actions">
+                        <option value="app_added" {% if request.args.get('action') == 'app_added' %}selected{% endif %}>App Added</option>
+                        <option value="app_edited" {% if request.args.get('action') == 'app_edited' %}selected{% endif %}>App Edited</option>
+                        <option value="app_deleted" {% if request.args.get('action') == 'app_deleted' %}selected{% endif %}>App Deleted</option>
+                    </optgroup>
+                    <optgroup label="Report Actions">
+                        <option value="report_added" {% if request.args.get('action') == 'report_added' %}selected{% endif %}>Report Added</option>
+                        <option value="report_edited" {% if request.args.get('action') == 'report_edited' %}selected{% endif %}>Report Edited</option>
+                        <option value="report_deleted" {% if request.args.get('action') == 'report_deleted' %}selected{% endif %}>Report Deleted</option>
+                    </optgroup>
+                    <optgroup label="User Actions">
+                        <option value="user_created" {% if request.args.get('action') == 'user_created' %}selected{% endif %}>User Created</option>
+                        <option value="user_role_changed" {% if request.args.get('action') == 'user_role_changed' %}selected{% endif %}>User Role Changed</option>
+                        <option value="user_banned" {% if request.args.get('action') == 'user_banned' %}selected{% endif %}>User Banned</option>
+                        <option value="user_unbanned" {% if request.args.get('action') == 'user_unbanned' %}selected{% endif %}>User Unbanned</option>
+                        <option value="2fa_enabled" {% if request.args.get('action') == '2fa_enabled' %}selected{% endif %}>2FA Enabled</option>
+                        <option value="2fa_disabled" {% if request.args.get('action') == '2fa_disabled' %}selected{% endif %}>2FA Disabled</option>
+                    </optgroup>
+                    <optgroup label="Category Actions">
+                        <option value="category_added" {% if request.args.get('action') == 'category_added' %}selected{% endif %}>Category Added</option>
+                        <option value="category_edited" {% if request.args.get('action') == 'category_edited' %}selected{% endif %}>Category Edited</option>
+                        <option value="category_deleted" {% if request.args.get('action') == 'category_deleted' %}selected{% endif %}>Category Deleted</option>
+                    </optgroup>
+                    <optgroup label="Security Events">
+                        <option value="login_success" {% if request.args.get('action') == 'login_success' %}selected{% endif %}>Login Success</option>
+                        <option value="login_failed" {% if request.args.get('action') == 'login_failed' %}selected{% endif %}>Login Failed</option>
+                        <option value="captcha_failed" {% if request.args.get('action') == 'captcha_failed' %}selected{% endif %}>Captcha Failed</option>
+                        <option value="account_locked" {% if request.args.get('action') == 'account_locked' %}selected{% endif %}>Account Locked</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="rollback" {% if request.args.get('action') == 'rollback' %}selected{% endif %}>Rollback</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="col-md-3">
@@ -74,7 +92,7 @@
                             <small>{{ log.timestamp[:19].replace('T', ' ') }}</small>
                         </td>
                         <td>
-                            <span class="badge badge-info">{{ log.username }}</span>
+                            <span class="badge badge-info">{{ log.username or 'Anonymous' }}</span>
                         </td>
                         <td>
                             {% set action_colors = {
@@ -88,37 +106,59 @@
                                 'user_role_changed': 'warning',
                                 'user_banned': 'danger',
                                 'user_unbanned': 'success',
+                                '2fa_enabled': 'success',
+                                '2fa_disabled': 'warning',
                                 'category_added': 'success',
                                 'category_edited': 'warning',
                                 'category_deleted': 'danger',
-                                'rollback': 'info'
+                                'rollback': 'info',
+                                'login_success': 'success',
+                                'login_failed': 'danger',
+                                'captcha_failed': 'danger',
+                                'permission_denied': 'danger',
+                                'account_locked': 'danger'
                             } %}
-                            <span class="badge badge-{{ action_colors.get(log.action, 'secondary') }}">
-                                {{ log.action | replace('_', ' ') | title }}
+                            {% set log_action = log.action or log.event_type %}
+                            <span class="badge badge-{{ action_colors.get(log_action, 'secondary') }}">
+                                {{ log_action | replace('_', ' ') | title }}
                             </span>
                         </td>
                         <td>
-                            <i class="fas {{ log.entity_type | get_entity_icon }}" aria-hidden="true"></i>
-                            {% if log.entity_type == 'app' and log.new_data %}
-                                {{ log.new_data.android_name or log.old_data.android_name or 'Unknown App' }}
-                            {% elif log.entity_type == 'app' and log.old_data %}
-                                {{ log.old_data.android_name or 'Unknown App' }}
-                            {% elif log.entity_type == 'user' and log.new_data %}
-                                {{ log.new_data.username or log.old_data.username or 'Unknown User' }}
-                            {% elif log.entity_type == 'user' and log.old_data %}
-                                {{ log.old_data.username or 'Unknown User' }}
-                            {% elif log.entity_type == 'category' and log.new_data %}
-                                {{ log.new_data.name or log.old_data.name or 'Unknown Category' }}
-                            {% elif log.entity_type == 'category' and log.old_data %}
-                                {{ log.old_data.name or 'Unknown Category' }}
-                            {% elif log.entity_type == 'report' and log.old_data %}
-                                Report for {{ log.old_data.app_id[:8] if log.old_data.app_id else 'Unknown' }}...
+                            {% if log.event_type %}
+                                {# Security event - show IP address #}
+                                <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                                {% if log.ip_address %}
+                                    <code>{{ log.ip_address }}</code>
+                                {% else %}
+                                    Security Event
+                                {% endif %}
                             {% else %}
-                                {{ log.entity_id[:8] if log.entity_id else 'N/A' }}...
+                                {# Regular action log #}
+                                <i class="fas {{ log.entity_type | get_entity_icon }}" aria-hidden="true"></i>
+                                {% if log.entity_type == 'app' and log.new_data %}
+                                    {{ log.new_data.android_name or log.old_data.android_name or 'Unknown App' }}
+                                {% elif log.entity_type == 'app' and log.old_data %}
+                                    {{ log.old_data.android_name or 'Unknown App' }}
+                                {% elif log.entity_type == 'user' and log.new_data %}
+                                    {{ log.new_data.username or log.old_data.username or 'Unknown User' }}
+                                {% elif log.entity_type == 'user' and log.old_data %}
+                                    {{ log.old_data.username or 'Unknown User' }}
+                                {% elif log.entity_type == 'category' and log.new_data %}
+                                    {{ log.new_data.name or log.old_data.name or 'Unknown Category' }}
+                                {% elif log.entity_type == 'category' and log.old_data %}
+                                    {{ log.old_data.name or 'Unknown Category' }}
+                                {% elif log.entity_type == 'report' and log.old_data %}
+                                    Report for {{ log.old_data.app_id[:8] if log.old_data.app_id else 'Unknown' }}...
+                                {% else %}
+                                    {{ log.entity_id[:8] if log.entity_id else 'N/A' }}...
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
-                            {% if log.rolled_back %}
+                            {% if log.event_type %}
+                                {# Security events don't have rollback status #}
+                                <span class="badge badge-light">-</span>
+                            {% elif log.rolled_back %}
                                 <span class="badge badge-secondary" title="Rolled back by {{ log.rolled_back_by_username }} at {{ log.rolled_back_at }}">
                                     <i class="fas fa-undo" aria-hidden="true"></i> Rolled Back
                                 </span>
@@ -130,7 +170,7 @@
                             <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#logModal{{ loop.index }}">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
                             </button>
-                            {% if not log.rolled_back and log.action in ['app_edited', 'app_deleted', 'report_deleted', 'category_edited', 'category_deleted'] %}
+                            {% if not log.event_type and not log.rolled_back and log.action in ['app_edited', 'app_deleted', 'report_deleted', 'category_edited', 'category_deleted'] %}
                             <form action="{{ url_for('dashboard.logs_rollback', log_id=log.id) }}" method="post" style="display: inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to rollback this action?');">
@@ -189,13 +229,36 @@
                     <dd class="col-sm-9">{{ log.timestamp }}</dd>
 
                     <dt class="col-sm-3">User</dt>
-                    <dd class="col-sm-9">{{ log.username }} ({{ log.user_id }})</dd>
+                    <dd class="col-sm-9">{{ log.username or 'Anonymous' }}{% if log.user_id %} ({{ log.user_id }}){% endif %}</dd>
 
+                    {% if log.event_type %}
+                    {# Security event fields #}
+                    <dt class="col-sm-3">Event Type</dt>
+                    <dd class="col-sm-9">{{ log.event_type | replace('_', ' ') | title }}</dd>
+
+                    <dt class="col-sm-3">IP Address</dt>
+                    <dd class="col-sm-9"><code>{{ log.ip_address or 'N/A' }}</code></dd>
+
+                    <dt class="col-sm-3">User Agent</dt>
+                    <dd class="col-sm-9"><small>{{ log.user_agent or 'N/A' }}</small></dd>
+
+                    {% if log.description %}
+                    <dt class="col-sm-3">Description</dt>
+                    <dd class="col-sm-9">{{ log.description }}</dd>
+                    {% endif %}
+
+                    {% if log.extra_data %}
+                    <dt class="col-sm-3">Extra Data</dt>
+                    <dd class="col-sm-9"><pre class="bg-light p-2 rounded mb-0"><code>{{ log.extra_data | tojson(indent=2) }}</code></pre></dd>
+                    {% endif %}
+
+                    {% else %}
+                    {# Regular action log fields #}
                     <dt class="col-sm-3">Action</dt>
                     <dd class="col-sm-9">{{ log.action | replace('_', ' ') | title }}</dd>
 
                     <dt class="col-sm-3">Entity Type</dt>
-                    <dd class="col-sm-9">{{ log.entity_type | title }}</dd>
+                    <dd class="col-sm-9">{{ log.entity_type | title if log.entity_type else 'N/A' }}</dd>
 
                     <dt class="col-sm-3">Entity ID</dt>
                     <dd class="col-sm-9"><code>{{ log.entity_id or 'N/A' }}</code></dd>
@@ -210,6 +273,7 @@
                     <dd class="col-sm-9">
                         Yes, by {{ log.rolled_back_by_username }} at {{ log.rolled_back_at }}
                     </dd>
+                    {% endif %}
                     {% endif %}
                 </dl>
 
