@@ -585,12 +585,14 @@ def apps_list():
     per_page = 50  # Limit apps per page
 
     category_filter = request.args.get('category', '')
+    search_query = request.args.get('q', '').strip()
 
     # Get paginated apps
     apps, total = DataManager.get_apps_paginated(
         page=page,
         per_page=per_page,
-        category_filter=category_filter if category_filter else None
+        category_filter=category_filter if category_filter else None,
+        search_query=search_query if search_query else None
     )
 
     categories = DataManager.get_categories()
@@ -602,9 +604,12 @@ def apps_list():
         'dashboard/apps_list.html',
         apps=apps,
         category_map=category_map,
+        categories=categories,
         page=page,
         total_pages=total_pages,
-        total=total
+        total=total,
+        search_query=search_query,
+        category_filter=category_filter
     )
 
 
@@ -932,6 +937,7 @@ def categories_delete(slug):
 def reports_list():
     page = request.args.get('page', 1, type=int)
     per_page = 50  # Limit reports per page
+    search_query = request.args.get('q', '').strip()
 
     apps = DataManager.get_apps()
     app_map = {app['id']: app for app in apps}
@@ -942,13 +948,17 @@ def reports_list():
         reports, total = DataManager.get_reports_paginated(
             page=page,
             per_page=per_page,
-            user_id=current_user.id
+            user_id=current_user.id,
+            search_query=search_query if search_query else None,
+            app_map=app_map
         )
     else:
         reports, total = DataManager.get_reports_paginated(
             page=page,
             per_page=per_page,
-            user_id=None
+            user_id=None,
+            search_query=search_query if search_query else None,
+            app_map=app_map
         )
 
     total_pages = (total + per_page - 1) // per_page
@@ -959,7 +969,8 @@ def reports_list():
         app_map=app_map,
         page=page,
         total_pages=total_pages,
-        total=total
+        total=total,
+        search_query=search_query
     )
 
 

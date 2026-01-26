@@ -693,9 +693,9 @@ class DataManager:
         return paginated_users, total
 
     @classmethod
-    def get_reports_paginated(cls, page=1, per_page=50, user_id=None):
+    def get_reports_paginated(cls, page=1, per_page=50, user_id=None, search_query=None, app_map=None):
         """
-        Get reports with pagination and optional user filter.
+        Get reports with pagination and optional user filter and search.
         Returns (reports, total_count).
         """
         reports = cls.get_reports()
@@ -703,6 +703,37 @@ class DataManager:
         # Apply user filter
         if user_id:
             reports = [r for r in reports if r.get('user_id') == user_id]
+
+        # Apply search filter
+        if search_query:
+            query = search_query.lower().strip()
+            filtered = []
+            for r in reports:
+                # Search in reporter name
+                if query in (r.get('reporter_name') or '').lower():
+                    filtered.append(r)
+                    continue
+                # Search in notes
+                if query in (r.get('notes') or '').lower():
+                    filtered.append(r)
+                    continue
+                # Search in app name (if app_map provided)
+                if app_map:
+                    app = app_map.get(r.get('app_id'))
+                    if app and query in (app.get('android_name') or '').lower():
+                        filtered.append(r)
+                        continue
+                    if app and query in (app.get('android_package') or '').lower():
+                        filtered.append(r)
+                        continue
+                # Search in device/version
+                if query in (r.get('device') or '').lower():
+                    filtered.append(r)
+                    continue
+                if query in (r.get('sailfish_version') or '').lower():
+                    filtered.append(r)
+                    continue
+            reports = filtered
 
         # Sort by created_at descending
         reports = sorted(reports, key=lambda r: r.get('created_at', ''), reverse=True)
@@ -717,12 +748,20 @@ class DataManager:
         return paginated_reports, total
 
     @classmethod
-    def get_apps_paginated(cls, page=1, per_page=50, category_filter=None):
+    def get_apps_paginated(cls, page=1, per_page=50, category_filter=None, search_query=None):
         """
-        Get apps with pagination and optional category filter.
+        Get apps with pagination and optional category filter and search.
         Returns (apps, total_count).
         """
         apps = cls.get_apps()
+
+        # Apply search filter
+        if search_query:
+            query = search_query.lower().strip()
+            apps = [a for a in apps if
+                    query in (a.get('android_name') or '').lower() or
+                    query in (a.get('android_package') or '').lower() or
+                    query in (a.get('native_name') or '').lower()]
 
         # Apply category filter
         if category_filter:
