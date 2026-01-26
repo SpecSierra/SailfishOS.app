@@ -825,15 +825,50 @@ main {
 /* Pagination */
 .page-link {
     color: #1a5f7a;
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
 }
 
 .page-link:hover {
     color: #0a4f6a;
+    background-color: var(--bg-card-header);
+    border-color: var(--border-color);
 }
 
 .page-item.active .page-link {
     background-color: #1a5f7a;
     border-color: #1a5f7a;
+}
+
+.page-item.disabled .page-link {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+/* Dark theme pagination */
+[data-theme="dark"] .page-link {
+    color: var(--primary);
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .page-link:hover {
+    color: var(--primary-light);
+    background-color: var(--bg-card-header);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+[data-theme="dark"] .page-item.disabled .page-link {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-muted);
 }
 
 /* Header section */

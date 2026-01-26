@@ -60,7 +60,17 @@ def validate_url(form, field):
 
     url = field.data.strip()
 
-    # Basic URL pattern check
+    # Allow relative paths starting with /
+    if url.startswith('/'):
+        # Validate relative path format (no directory traversal, valid characters)
+        relative_pattern = re.compile(r'^/[a-zA-Z0-9/_.-]+$')
+        if not relative_pattern.match(url):
+            raise ValidationError('Invalid relative path format')
+        if '..' in url:
+            raise ValidationError('Directory traversal not allowed')
+        return
+
+    # Basic URL pattern check for absolute URLs
     url_pattern = re.compile(
         r'^https?://'  # http:// or https://
         r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
@@ -70,7 +80,7 @@ def validate_url(form, field):
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
     if not url_pattern.match(url):
-        raise ValidationError('Please enter a valid URL (must start with http:// or https://)')
+        raise ValidationError('Please enter a valid URL (must start with http://, https://, or /)')
 
 
 # Country list for filtering (countries where Jolla phones are sold + common regions)
