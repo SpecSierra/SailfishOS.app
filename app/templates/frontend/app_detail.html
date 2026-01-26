@@ -249,7 +249,7 @@
                                 {% if report.platform == 'android' %}
                                 <span class="badge badge-secondary mr-1"><i class="fab fa-android" aria-hidden="true"></i> Android</span>
                                 {% elif report.platform == 'native' %}
-                                <span class="badge badge-info mr-1"><i class="fas fa-ship" aria-hidden="true"></i> Native</span>
+                                <span class="badge badge-info mr-1"><img src="{{ url_for('static', filename='icons/sailfishos-mark.svg') }}" class="sfos-icon" alt="" aria-hidden="true"> Native</span>
                                 {% if report.native_app_name %}
                                 <span class="badge badge-light mr-1">{{ report.native_app_name }}</span>
                                 {% endif %}
