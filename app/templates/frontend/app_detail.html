@@ -474,7 +474,7 @@
                     Have you tested <strong>{{ app.android_name }}</strong> on SailfishOS?
                     Help the community by submitting a compatibility report!
                 </p>
-                <a href="#submit-report-card" class="btn btn-outline-info btn-sm mt-2">
+                <a href="#submit-report-card" class="btn btn-outline-info btn-sm mt-2" id="add-report-btn">
                     <i class="fas fa-plus" aria-hidden="true"></i> Add Report
                 </a>
             </div>
@@ -553,6 +553,21 @@ document.addEventListener('DOMContentLoaded', function() {
     nativeAppSelect.addEventListener('change', toggleCustomNativeApp);
     deviceSelect.addEventListener('change', toggleCustomDevice);
     sfosSelect.addEventListener('change', toggleCustomSfos);
+
+    // Add Report button - scroll and open form
+    var addReportBtn = document.getElementById('add-report-btn');
+    var submitReportCollapse = document.getElementById('submit-report');
+    if (addReportBtn && submitReportCollapse) {
+        addReportBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Open the collapse if not already open
+            if (!submitReportCollapse.classList.contains('show')) {
+                $(submitReportCollapse).collapse('show');
+            }
+            // Scroll to the form
+            document.getElementById('submit-report-card').scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });
 </script>
 {% endblock %}
