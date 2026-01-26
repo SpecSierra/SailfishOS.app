@@ -11,6 +11,7 @@ frontend_bp = Blueprint('frontend', __name__)
 
 
 @frontend_bp.route('/icons/<path:filename>')
+@limiter.exempt
 def serve_icon(filename):
     """Serve icons from the data/icons directory."""
     return send_from_directory(Config.ICONS_DIR, filename)
