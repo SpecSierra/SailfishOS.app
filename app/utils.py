@@ -6,10 +6,25 @@ import logging
 import requests
 import re
 import os
+import unicodedata
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from flask import current_app
 from config import Config
+
+
+def normalize_for_sort(text):
+    """
+    Normalize a string for locale-aware sorting.
+    Removes diacritics/accents so that 'Ö' sorts as 'O', 'Č' sorts as 'C', etc.
+    """
+    if not text:
+        return ''
+    # Normalize to NFD (decomposed form), then remove combining characters (accents)
+    normalized = unicodedata.normalize('NFD', text)
+    # Remove combining diacritical marks (category 'Mn')
+    stripped = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return stripped.lower()
 
 try:
     import pyotp

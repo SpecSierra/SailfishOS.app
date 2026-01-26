@@ -4,11 +4,24 @@ import uuid
 import fcntl
 import tempfile
 import logging
+import unicodedata
 from datetime import datetime
 from flask_login import UserMixin
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import current_app
+
+
+def _normalize_for_sort(text):
+    """
+    Normalize a string for locale-aware sorting.
+    Removes diacritics/accents so that 'Ö' sorts as 'O', 'Č' sorts as 'C', etc.
+    """
+    if not text:
+        return ''
+    normalized = unicodedata.normalize('NFD', text)
+    stripped = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return stripped.lower()
 
 # Configure module logger for database operations
 db_logger = logging.getLogger('sailfishos.db')
@@ -768,7 +781,7 @@ class DataManager:
             apps = [a for a in apps if a.get('category') == category_filter]
 
         # Sort alphabetically
-        apps = sorted(apps, key=lambda a: a.get('android_name', '').lower())
+        apps = sorted(apps, key=lambda a: _normalize_for_sort(a.get('android_name', '')))
 
         total = len(apps)
 

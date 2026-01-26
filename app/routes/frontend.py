@@ -3,7 +3,7 @@ from flask_login import current_user
 from app import limiter
 from app.models import DataManager
 from app.forms import SearchForm, ReportForm, AppSubmitForm
-from app.utils import fetch_and_update_app_info, verify_hcaptcha
+from app.utils import fetch_and_update_app_info, verify_hcaptcha, normalize_for_sort
 from app.logs import LogManager
 from config import Config
 
@@ -70,7 +70,7 @@ def index():
         has_native = 1 if app.get('native_exists') else 0
         has_rating = 1 if rating_info['rating'] > 0 else 0
         rating_value = rating_info['rating'] or 0
-        return (-has_native, -has_rating, -rating_value, -rating_info['count'], app.get('android_name', '').lower())
+        return (-has_native, -has_rating, -rating_value, -rating_info['count'], normalize_for_sort(app.get('android_name', '')))
 
     filtered_apps.sort(key=sort_key)
 
