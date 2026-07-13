@@ -124,6 +124,7 @@ DEPENDENCY_CHOICES = [
 SUPPORTED_DEVICES = [
     ('', '-- Select Device --'),
     # Currently supported devices
+    ('Jolla Phone 2', 'Jolla Phone 2'),
     ('Jolla C2', 'Jolla C2'),
     ('Xperia 10 V', 'Xperia 10 V'),
     ('Xperia 10 IV', 'Xperia 10 IV'),
@@ -147,6 +148,8 @@ SUPPORTED_DEVICES = [
 # SailfishOS versions
 SFOS_VERSIONS = [
     ('', '-- Select Version --'),
+    ('5.2', '5.2'),
+    ('5.1', '5.1'),
     ('5.0', '5.0'),
     ('4.6', '4.6'),
     ('4.5', '4.5'),
