@@ -147,7 +147,7 @@ class FileLock:
 
 class User(UserMixin):
     def __init__(self, id, username, email, password_hash, role='user', is_banned=False,
-                 totp_secret=None, totp_enabled=False):
+                 totp_secret=None, totp_enabled=False, created_at=None):
         self.id = id
         self.username = username
         self.email = email
@@ -156,6 +156,9 @@ class User(UserMixin):
         self.is_banned = is_banned
         self.totp_secret = totp_secret
         self.totp_enabled = totp_enabled
+        # ISO-8601 signup timestamp. None means the account predates trust
+        # tracking and is treated as grandfathered (top trust level).
+        self.created_at = created_at
 
     def check_password(self, password):
         try:
@@ -208,7 +211,8 @@ class User(UserMixin):
             'role': self.role,
             'is_banned': self.is_banned,
             'totp_secret': self.totp_secret,
-            'totp_enabled': self.totp_enabled
+            'totp_enabled': self.totp_enabled,
+            'created_at': self.created_at
         }
 
     @classmethod
@@ -221,7 +225,9 @@ class User(UserMixin):
             role=data.get('role', 'user'),
             is_banned=data.get('is_banned', False),
             totp_secret=data.get('totp_secret'),
-            totp_enabled=data.get('totp_enabled', False)
+            totp_enabled=data.get('totp_enabled', False),
+            # Missing on legacy accounts -> grandfathered to top trust level
+            created_at=data.get('created_at')
         )
 
 
@@ -390,7 +396,8 @@ class DataManager:
             email=email,
             password_hash=User.hash_password(password),
             role=role,
-            is_banned=False
+            is_banned=False,
+            created_at=datetime.utcnow().isoformat()
         )
         users.append(user)
         cls.save_users(users)
@@ -671,6 +678,7 @@ class DataManager:
                 'role': user.role,
                 'account_status': 'banned' if user.is_banned else 'active',
                 'two_factor_enabled': user.totp_enabled,
+                'created_at': user.created_at,
             },
             'reports': enriched_reports,
             'reports_count': len(enriched_reports),
@@ -815,6 +823,7 @@ class DataManager:
                 'role': user.role,
                 'is_banned': user.is_banned,
                 'totp_enabled': user.totp_enabled,
+                'created_at': user.created_at,
                 # Exclude: password_hash, totp_secret
             })
 

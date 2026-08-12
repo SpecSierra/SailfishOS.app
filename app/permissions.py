@@ -30,10 +30,13 @@ ROLE_LEVELS = {
     'admin': 3
 }
 
-# Role to permission mapping
+# Role to permission mapping.
+# Note: the base "user" role only grants report submission. Additional
+# abilities (adding apps, editing apps, refreshing info, moderating reports)
+# are earned through trust levels as the account ages and contributes — see
+# app/trust.py. Moderators and admins get their permissions from their role.
 ROLE_PERMISSIONS = {
     'user': {
-        CAN_ADD_APP,
         CAN_ADD_REPORT,
     },
     'moderator': {
@@ -81,8 +84,18 @@ def check_permission(user, permission):
     if not user or not hasattr(user, 'role'):
         return False
 
-    user_permissions = get_permissions_for_role(user.role)
-    return permission in user_permissions
+    # Permissions granted directly by the user's role
+    if permission in get_permissions_for_role(user.role):
+        return True
+
+    # Regular users can additionally earn permissions via trust progression
+    if user.role == 'user':
+        # Imported lazily to avoid a circular import (trust -> permissions)
+        from app.trust import get_user_trust_permissions
+        if permission in get_user_trust_permissions(user):
+            return True
+
+    return False
 
 
 def has_permission(permission):

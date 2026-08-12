@@ -32,6 +32,53 @@
             </div>
         </div>
 
+        {% if trust_info and trust_info.is_regular_user %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="fas fa-award" aria-hidden="true"></i> Trust Level
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <span class="badge badge-primary">Level {{ trust_info.level }}</span>
+                    <strong>{{ trust_info.name }}</strong>
+                </p>
+                {% if trust_info.progress %}
+                {% set p = trust_info.progress %}
+                <p class="text-muted small mb-2">
+                    Progress to Level {{ p.next_level }} ({{ p.next_level_name }}):
+                </p>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>Account age</span>
+                        <span>{{ p.age_days }} / {{ p.age_required }} days</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar"
+                             style="width: {{ [(p.age_days / p.age_required * 100) if p.age_required else 100, 100] | min }}%;"
+                             aria-valuenow="{{ p.age_days }}" aria-valuemin="0" aria-valuemax="{{ p.age_required }}"></div>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between small">
+                        <span>Reports submitted</span>
+                        <span>{{ p.reports }} / {{ p.reports_required }}</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{ [(p.reports / p.reports_required * 100) if p.reports_required else 100, 100] | min }}%;"
+                             aria-valuenow="{{ p.reports }}" aria-valuemin="0" aria-valuemax="{{ p.reports_required }}"></div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-success small mb-0">
+                    <i class="fas fa-check-circle" aria-hidden="true"></i>
+                    You've reached the highest trust level. Thanks for contributing!
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card mt-3">
             <div class="card-header">
                 <i class="fas fa-key" aria-hidden="true"></i> Password

@@ -378,10 +378,22 @@ def profile():
     apps = DataManager.get_apps()
     app_map = {app['id']: app for app in apps}
     user_reports = sorted(user_reports, key=lambda r: r.get('created_at', ''), reverse=True)
+
+    # Trust level standing (only meaningful for the regular "user" role)
+    from app.trust import get_user_trust_level, get_trust_level_name, get_next_level_progress
+    trust_level = get_user_trust_level(current_user)
+    trust_info = {
+        'level': trust_level,
+        'name': get_trust_level_name(trust_level),
+        'progress': get_next_level_progress(current_user),
+        'is_regular_user': current_user.role == 'user',
+    }
+
     return render_template(
         'dashboard/profile.html',
         reports=user_reports,
-        app_map=app_map
+        app_map=app_map,
+        trust_info=trust_info
     )
 
 
@@ -1329,12 +1341,29 @@ def users_list():
 
     total_pages = (total + per_page - 1) // per_page
 
+    # Compute trust levels for the shown users. Load reports once and build a
+    # per-user count map instead of a lookup per user.
+    from app.trust import trust_level_from_count, get_trust_level_name
+    reports = DataManager.get_reports()
+    reports_count_by_user = {}
+    for r in reports:
+        uid = r.get('user_id')
+        if uid:
+            reports_count_by_user[uid] = reports_count_by_user.get(uid, 0) + 1
+
+    trust_map = {}
+    for u in users:
+        level = trust_level_from_count(u, reports_count_by_user.get(u.id, 0))
+        if level is not None:
+            trust_map[u.id] = {'level': level, 'name': get_trust_level_name(level)}
+
     return render_template(
         'dashboard/users_list.html',
         users=users,
         page=page,
         total_pages=total_pages,
-        total=total
+        total=total,
+        trust_map=trust_map
     )
 
 

@@ -48,6 +48,7 @@
                 <th>Username</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Trust</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -66,6 +67,15 @@
                     <span class="badge {{ get_role_badge_class(user.role) }}">
                         {{ get_role_display_name(user.role) }}
                     </span>
+                </td>
+                <td>
+                    {% if trust_map.get(user.id) %}
+                    <span class="badge badge-primary" title="Trust level {{ trust_map[user.id].level }}">
+                        TL{{ trust_map[user.id].level }} · {{ trust_map[user.id].name }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
                 </td>
                 <td>
                     {% if user.is_banned %}
