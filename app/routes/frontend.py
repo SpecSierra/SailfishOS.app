@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from app import limiter
 from app.models import DataManager
-from app.forms import SearchForm, ReportForm, AppSubmitForm
+from app.forms import SearchForm, ReportSubmitForm, AppSubmitForm
 from app.utils import fetch_and_update_app_info, verify_hcaptcha, normalize_for_sort
 from app.search import search_apps
 from app.logs import LogManager
@@ -130,7 +130,7 @@ def app_detail(app_id):
     if not app:
         return render_template('frontend/404.html'), 404
 
-    form = ReportForm()
+    form = ReportSubmitForm()
     native_app_choices = [('', '-- Select native app --')]
     native_names = []
     if app.get('native_exists') and app.get('native_name'):
@@ -169,40 +169,82 @@ def app_detail(app_id):
                 platform_ratings=platform_ratings
             )
 
-        # Save the report
-        report_data = {
-            'app_id': app_id,
-            'reporter_name': form.reporter_name.data or 'Anonymous',
-            'platform': form.platform.data,
-            'works': form.works.data,
-            'dependency': form.dependency.data if form.platform.data == 'android' else None,
-            'native_app_name': (
-                (form.custom_native_app.data or '').strip()
-                if form.platform.data == 'native' and form.native_app.data == 'custom'
-                else (form.native_app.data or None) if form.platform.data == 'native' else None
-            ),
-            'device': form.custom_device.data if form.device.data == 'custom' else form.device.data,
-            'sailfish_version': form.custom_sailfish_version.data if form.sailfish_version.data == 'custom' else form.sailfish_version.data,
-            'app_version': form.app_version.data,
-            'notes': form.notes.data,
-            'user_id': current_user.id if current_user.is_authenticated else None
-        }
-
-        new_report = DataManager.add_report(report_data)
-
-        # Log the action
-        LogManager.log_action(
-            user_id=current_user.id if current_user.is_authenticated else None,
-            username=current_user.username if current_user.is_authenticated else report_data.get('reporter_name', 'Anonymous'),
-            action=LogManager.ACTION_REPORT_ADDED,
-            entity_type='report',
-            entity_id=new_report.get('id'),
-            old_data=None,
-            new_data=new_report,
-            description=f'Report submitted for app {app_id}'
+        # Context shared by every platform reported in this submission
+        reporter_name = form.reporter_name.data or 'Anonymous'
+        device = form.custom_device.data if form.device.data == 'custom' else form.device.data
+        sailfish_version = (
+            form.custom_sailfish_version.data
+            if form.sailfish_version.data == 'custom'
+            else form.sailfish_version.data
         )
+        native_app_name = (
+            (form.custom_native_app.data or '').strip()
+            if form.native_app.data == 'custom'
+            else (form.native_app.data or None)
+        )
+        user_id = current_user.id if current_user.is_authenticated else None
 
-        flash('Thank you! Your report has been submitted.', 'success')
+        def _base_report():
+            return {
+                'app_id': app_id,
+                'reporter_name': reporter_name,
+                'device': device,
+                'sailfish_version': sailfish_version,
+                'app_version': form.app_version.data,
+                'notes': form.notes.data,
+                'user_id': user_id,
+            }
+
+        # Build one report per platform the user gave a status for
+        report_entries = []
+        if form.android_works.data:
+            entry = _base_report()
+            entry.update({
+                'platform': 'android',
+                'works': form.android_works.data,
+                'dependency': form.dependency.data or None,
+                'native_app_name': None,
+            })
+            report_entries.append(entry)
+        if form.native_works.data:
+            entry = _base_report()
+            entry.update({
+                'platform': 'native',
+                'works': form.native_works.data,
+                'dependency': None,
+                'native_app_name': native_app_name,
+            })
+            report_entries.append(entry)
+        if form.browser_works.data:
+            entry = _base_report()
+            entry.update({
+                'platform': 'browser',
+                'works': form.browser_works.data,
+                'dependency': None,
+                'native_app_name': None,
+            })
+            report_entries.append(entry)
+
+        for entry in report_entries:
+            new_report = DataManager.add_report(entry)
+            # Log each report
+            LogManager.log_action(
+                user_id=user_id,
+                username=current_user.username if current_user.is_authenticated else reporter_name,
+                action=LogManager.ACTION_REPORT_ADDED,
+                entity_type='report',
+                entity_id=new_report.get('id'),
+                old_data=None,
+                new_data=new_report,
+                description=f"{entry['platform'].capitalize()} report submitted for app {app_id}"
+            )
+
+        count = len(report_entries)
+        flash(
+            f'Thank you! Your {count} report{"s" if count != 1 else ""} '
+            f'ha{"ve" if count != 1 else "s"} been submitted.',
+            'success'
+        )
         return redirect(url_for('frontend.app_detail', app_id=app_id))
 
     return render_template(

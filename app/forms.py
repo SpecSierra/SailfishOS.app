@@ -282,6 +282,64 @@ class ReportForm(FlaskForm):
     notes = TextAreaField('Notes / Details', validators=[Optional(), Length(max=2000)])
 
 
+# Per-platform "does it work?" options. Blank means the platform wasn't tested.
+PLATFORM_WORKS_CHOICES = [
+    ('', "— Didn't test —"),
+    ('yes', 'Yes, it works'),
+    ('partial', 'Partially works'),
+    ('no', 'Does not work'),
+]
+
+
+class ReportSubmitForm(FlaskForm):
+    """
+    Public report form that lets a single submission cover multiple platforms.
+
+    A user can report the Android app, the native SailfishOS app and/or the
+    web browser at once — e.g. "Android works, native app partially works".
+    Each platform with a status becomes its own report record, so the existing
+    per-platform aggregation and display keep working unchanged.
+    """
+    reporter_name = StringField('Your Name', validators=[Optional(), Length(max=50)])
+
+    # Android App Support
+    android_works = SelectField('Android App', choices=PLATFORM_WORKS_CHOICES, validators=[Optional()])
+    dependency = SelectField('Google Services Required?', choices=[
+        ('', '-- Select --'),
+        ('none', 'No - works without Google Services'),
+        ('microg', 'Requires microG'),
+        ('gapps', 'Requires Open GApps'),
+        ('microg_or_gapps', 'Requires microG or GApps'),
+    ], validators=[Optional()])
+
+    # Native SailfishOS app
+    native_works = SelectField('Native SailfishOS App', choices=PLATFORM_WORKS_CHOICES, validators=[Optional()])
+    native_app = SelectField('Native App', choices=[('', '-- Select native app --')], validators=[Optional()])
+    custom_native_app = StringField('Custom Native App', validators=[Optional(), Length(max=100)])
+
+    # Web browser
+    browser_works = SelectField('Web Browser', choices=PLATFORM_WORKS_CHOICES, validators=[Optional()])
+
+    # Shared context (applies to every platform reported in this submission)
+    device = SelectField('Device Model', choices=SUPPORTED_DEVICES, validators=[Optional()])
+    custom_device = StringField('Custom Device', validators=[Optional(), Length(max=100)])
+    sailfish_version = SelectField('SailfishOS Version', choices=SFOS_VERSIONS, validators=[Optional()])
+    custom_sailfish_version = StringField('Custom SFOS Version', validators=[Optional(), Length(max=50)])
+    app_version = StringField('App Version', validators=[Optional(), Length(max=50)])
+    notes = TextAreaField('Notes / Details', validators=[Optional(), Length(max=2000)])
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+        # At least one platform must have a status
+        if not (self.android_works.data or self.native_works.data or self.browser_works.data):
+            self.android_works.errors.append(
+                'Please report a status for at least one platform (Android, native, or browser).'
+            )
+            return False
+        return True
+
+
 class RegistrationForm(FlaskForm):
     """User registration form."""
     username = StringField('Username', validators=[

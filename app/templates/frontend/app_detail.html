@@ -334,32 +334,23 @@
                 <form method="POST" action="{{ url_for('frontend.app_detail', app_id=app.id) }}">
                     {{ form.hidden_tag() }}
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="reporter_name"><i class="fas fa-user"></i> Your Name (optional)</label>
-                                {{ form.reporter_name(class="form-control", placeholder="Anonymous") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="platform"><i class="fas fa-layer-group"></i> What are you testing? *</label>
-                                {{ form.platform(class="form-control", id="platform-select") }}
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="reporter_name"><i class="fas fa-user"></i> Your Name (optional)</label>
+                        {{ form.reporter_name(class="form-control", placeholder="Anonymous") }}
                     </div>
 
+                    <p class="mb-1"><strong><i class="fas fa-layer-group"></i> Which platforms did you test? *</strong></p>
+                    <p class="text-muted small mb-2">Report any or all — leave a platform on "Didn't test" to skip it. You can rate the Android app and the native app in the same submission.</p>
+                    {% for error in form.android_works.errors %}
+                    <small class="text-danger d-block mb-2">{{ error }}</small>
+                    {% endfor %}
+
+                    <!-- Android -->
                     <div class="row">
-                        <div class="col-md-6" id="native-app-group" style="display: none;">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label for="native_app"><i class="fas fa-ship"></i> Native App</label>
-                                {{ form.native_app(class="form-control", id="native-app-select") }}
-                            </div>
-                        </div>
-                        <div class="col-md-6" id="works-group">
-                            <div class="form-group">
-                                <label for="works"><i class="fas fa-check-circle"></i> Does it work? *</label>
-                                {{ form.works(class="form-control") }}
+                                <label for="android_works"><i class="fab fa-android"></i> Android App (via App Support)</label>
+                                {{ form.android_works(class="form-control", id="android-works-select") }}
                             </div>
                         </div>
                         <div class="col-md-6" id="dependency-group" style="display: none;">
@@ -370,11 +361,36 @@
                         </div>
                     </div>
 
+                    <!-- Native -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="native_works"><i class="fas fa-ship"></i> Native SailfishOS App</label>
+                                {{ form.native_works(class="form-control", id="native-works-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="native-app-group" style="display: none;">
+                            <div class="form-group">
+                                <label for="native_app"><i class="fas fa-ship"></i> Which native app?</label>
+                                {{ form.native_app(class="form-control", id="native-app-select") }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="row" id="custom-native-app-row" style="display: none;">
                         <div class="col-md-6" id="custom-native-app-group">
                             <div class="form-group">
                                 <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App Name</label>
                                 {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Browser -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="browser_works"><i class="fas fa-globe"></i> Web Browser</label>
+                                {{ form.browser_works(class="form-control") }}
                             </div>
                         </div>
                     </div>
@@ -495,8 +511,9 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var platformSelect = document.getElementById('platform-select');
+    var androidWorks = document.getElementById('android-works-select');
     var dependencyGroup = document.getElementById('dependency-group');
+    var nativeWorks = document.getElementById('native-works-select');
     var nativeAppGroup = document.getElementById('native-app-group');
     var nativeAppSelect = document.getElementById('native-app-select');
     var customNativeAppRow = document.getElementById('custom-native-app-row');
@@ -505,60 +522,43 @@ document.addEventListener('DOMContentLoaded', function() {
     var sfosSelect = document.getElementById('sfos-select');
     var customSfosGroup = document.getElementById('custom-sfos-group');
 
-    function togglePlatformFields() {
-        var platform = platformSelect.value;
+    function show(el, on, display) {
+        if (el) { el.style.display = on ? (display || 'block') : 'none'; }
+    }
 
-        // Android: show Google Services, hide Native App
-        if (platform === 'android') {
-            dependencyGroup.style.display = 'block';
-            nativeAppGroup.style.display = 'none';
-            customNativeAppRow.style.display = 'none';
-        }
-        // Native: show Native App, hide Google Services
-        else if (platform === 'native') {
-            dependencyGroup.style.display = 'none';
-            nativeAppGroup.style.display = 'block';
-            toggleCustomNativeApp();
-        }
-        // Browser or other: hide both
-        else {
-            dependencyGroup.style.display = 'none';
-            nativeAppGroup.style.display = 'none';
-            customNativeAppRow.style.display = 'none';
-        }
+    // Android: Google Services question only relevant if an Android status is set
+    function toggleAndroid() {
+        show(dependencyGroup, !!androidWorks.value);
+    }
+
+    // Native: reveal the native-app picker only if a native status is set
+    function toggleNative() {
+        show(nativeAppGroup, !!nativeWorks.value);
+        toggleCustomNativeApp();
     }
 
     function toggleCustomNativeApp() {
-        if (nativeAppSelect.value === 'custom') {
-            customNativeAppRow.style.display = 'flex';
-        } else {
-            customNativeAppRow.style.display = 'none';
-        }
+        var on = !!nativeWorks.value && nativeAppSelect.value === 'custom';
+        show(customNativeAppRow, on, 'flex');
     }
 
     function toggleCustomDevice() {
-        if (deviceSelect.value === 'custom') {
-            customDeviceGroup.style.display = 'block';
-        } else {
-            customDeviceGroup.style.display = 'none';
-        }
+        show(customDeviceGroup, deviceSelect.value === 'custom');
     }
 
     function toggleCustomSfos() {
-        if (sfosSelect.value === 'custom') {
-            customSfosGroup.style.display = 'block';
-        } else {
-            customSfosGroup.style.display = 'none';
-        }
+        show(customSfosGroup, sfosSelect.value === 'custom');
     }
 
     // Initial check
-    togglePlatformFields();
+    toggleAndroid();
+    toggleNative();
     toggleCustomDevice();
     toggleCustomSfos();
 
     // Listen for changes
-    platformSelect.addEventListener('change', togglePlatformFields);
+    androidWorks.addEventListener('change', toggleAndroid);
+    nativeWorks.addEventListener('change', toggleNative);
     nativeAppSelect.addEventListener('change', toggleCustomNativeApp);
     deviceSelect.addEventListener('change', toggleCustomDevice);
     sfosSelect.addEventListener('change', toggleCustomSfos);
