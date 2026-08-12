@@ -244,11 +244,11 @@ def submit_app():
                 hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY']
             )
 
-        # Fetch info from Play Store
+        # Fetch info from Play Store, falling back to F-Droid
         info = fetch_and_update_app_info(package_name)
 
         if not info or not info.get('name'):
-            flash(f'Could not find app "{package_name}" on Play Store. Please check the package name.', 'danger')
+            flash(f'Could not find app "{package_name}" on the Play Store or F-Droid. Please check the package name.', 'danger')
             return render_template(
                 'frontend/submit_app.html',
                 form=form,

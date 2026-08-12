@@ -56,6 +56,8 @@ ALLOWED_ICON_DOMAINS = {
     'lh5.googleusercontent.com',
     'lh6.googleusercontent.com',
     'play.google.com',
+    # F-Droid hosts app icons on its main repo domain
+    'f-droid.org',
 }
 
 
@@ -561,19 +563,150 @@ def fetch_play_store_info(package_name):
         return None
 
 
-def fetch_and_update_app_info(package_name):
+def fetch_fdroid_info(package_name):
     """
-    Fetch all available info from Play Store.
+    Fetch app info (description, icon, name) from the F-Droid package page.
+
+    F-Droid is a catalogue of Free and Open Source Android apps. Many apps
+    relevant to SailfishOS users are published there rather than on the
+    Play Store, so it is used as an additional source.
+
+    Args:
+        package_name: The Android package name (e.g., 'org.fdroid.fdroid')
+
+    Returns:
+        Dictionary with 'name', 'description', 'icon_url' or None if not found
+    """
+    if not package_name:
+        return None
+
+    url = f'https://f-droid.org/en/packages/{package_name}/'
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        # F-Droid returns 404 for packages it does not host
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        result = {}
+
+        # Get app name from og:title (strip the F-Droid suffix)
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            name = og_title['content']
+            # Titles look like "App Name | F-Droid - Free and Open Source ..."
+            if '|' in name:
+                name = name.split('|', 1)[0]
+            result['name'] = name.strip()
+
+        # Description: take only the intro (first paragraph) of the full body.
+        # The F-Droid description often continues into a "Features:" list and
+        # other sections, which we don't want flattened into one blob.
+        description = None
+        desc_div = soup.find(class_='package-description')
+        if desc_div:
+            first_p = desc_div.find('p')
+            if first_p:
+                description = first_p.get_text(separator=' ', strip=True)
+            else:
+                # No <p> markup: fall back to the text up to the first blank line
+                chunk = desc_div.get_text(separator='\n', strip=True).split('\n\n', 1)[0]
+                description = ' '.join(chunk.split())
+
+        # Fall back to the short summary, then og:description, if there is no body
+        if not description:
+            summary = soup.find(class_='package-summary')
+            if summary:
+                description = summary.get_text(separator=' ', strip=True)
+        if not description:
+            og_desc = soup.find('meta', property='og:description')
+            if og_desc and og_desc.get('content'):
+                description = og_desc['content'].strip()
+
+        if description:
+            result['description'] = description
+
+        # Get icon URL from og:image, then fall back to the package icon <img>
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            icon_url = urljoin(url, og_image['content'])
+            if 'f-droid.org' in icon_url:
+                result['icon_url'] = icon_url
+
+        if 'icon_url' not in result:
+            icon_img = soup.find('img', class_='package-icon')
+            if icon_img and icon_img.get('src'):
+                result['icon_url'] = urljoin(url, icon_img['src'])
+
+        return result if result else None
+
+    except requests.RequestException as e:
+        logger.warning(f"Error fetching F-Droid info for {package_name}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Error parsing F-Droid info for {package_name}: {e}")
+        return None
+
+
+# Provider dispatch table: maps a source name to its fetch function.
+APP_INFO_PROVIDERS = {
+    'playstore': fetch_play_store_info,
+    'fdroid': fetch_fdroid_info,
+}
+
+# Human-readable labels for each provider (used in flash messages).
+PROVIDER_LABELS = {
+    'playstore': 'Play Store',
+    'fdroid': 'F-Droid',
+}
+
+# Order in which providers are tried by default.
+DEFAULT_PROVIDER_ORDER = ('playstore', 'fdroid')
+
+
+def fetch_and_update_app_info(package_name, sources=DEFAULT_PROVIDER_ORDER):
+    """
+    Fetch all available info for an app from the configured providers.
+
+    Providers are tried in order and the first one that returns a usable
+    result (one that includes an app name) wins. This lets apps missing from
+    the Play Store still be resolved via F-Droid.
 
     Args:
         package_name: The Android package name
+        sources: Iterable of provider names to try, in priority order
+                 (defaults to Play Store then F-Droid)
 
     Returns:
-        Dictionary with available info or None if failed
+        Dictionary with available info (including the 'source' that provided
+        it) or None if no provider had the app
     """
-    info = fetch_play_store_info(package_name)
+    info = None
+    source_used = None
+    for source in sources:
+        provider = APP_INFO_PROVIDERS.get(source)
+        if not provider:
+            logger.warning(f"Unknown app info provider requested: {source}")
+            continue
+        candidate = provider(package_name)
+        # Require at least a name to consider the lookup successful
+        if candidate and candidate.get('name'):
+            info = candidate
+            source_used = source
+            break
+
     if not info:
         return None
+
+    info['source'] = source_used
 
     # If we got an icon URL, try to download it
     if info.get('icon_url'):

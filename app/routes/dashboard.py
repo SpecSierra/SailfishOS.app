@@ -13,7 +13,8 @@ from app.forms import (
 from app.utils import (
     fetch_play_store_icon, fetch_and_save_icon, fetch_and_update_app_info,
     verify_hcaptcha, is_totp_available, generate_totp_secret,
-    generate_totp_qr_code, verify_totp, get_totp_uri
+    generate_totp_qr_code, verify_totp, get_totp_uri,
+    APP_INFO_PROVIDERS, PROVIDER_LABELS
 )
 from app.decorators import role_required, admin_required, moderator_required, check_not_banned
 from app.logs import LogManager
@@ -29,6 +30,9 @@ from app.permissions import (
 MAX_FAILED_ATTEMPTS = 5  # Lock account after 5 failed attempts
 LOCKOUT_DURATION_MINUTES = 15  # Lock for 15 minutes
 
+# Maximum 2FA verification attempts per pending login before it is invalidated
+MAX_2FA_ATTEMPTS = 5
+
 # In-memory storage for failed login attempts (per username)
 # Format: {username: {'count': int, 'first_attempt': datetime, 'locked_until': datetime or None}}
 _failed_login_attempts = {}
@@ -38,10 +42,19 @@ def is_safe_url(target):
     """Check if the target URL is safe for redirection (prevents open redirect)."""
     if not target:
         return False
-    # Parse the target URL
+    # Browsers treat backslashes as forward slashes, so a target like
+    # '/\evil.com' or '/\/evil.com' is parsed as relative here but redirects
+    # off-site in the browser. Reject backslashes outright.
+    if '\\' in target:
+        return False
+    # Must be a path-relative URL starting with a single slash.
+    # This rejects scheme-relative URLs like '//evil.com' (netloc set) and
+    # absolute URLs, while still allowing normal internal paths.
+    if not target.startswith('/') or target.startswith('//'):
+        return False
+    # Parse the target URL and confirm there is no scheme or netloc
+    # (defense in depth against any remaining edge cases).
     parsed = urlparse(target)
-    # Only allow relative URLs (no scheme or netloc)
-    # This prevents redirects to external sites
     return not parsed.scheme and not parsed.netloc
 
 
@@ -206,7 +219,16 @@ def login():
     return render_template('dashboard/login.html', form=form, hcaptcha_site_key=current_app.config['HCAPTCHA_SITE_KEY'])
 
 
+def _clear_pending_2fa():
+    """Remove all pending 2FA state from the session."""
+    session.pop('pending_2fa_user_id', None)
+    session.pop('pending_2fa_remember', None)
+    session.pop('pending_2fa_next', None)
+    session.pop('pending_2fa_attempts', None)
+
+
 @dashboard_bp.route('/verify-2fa', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Throttle TOTP brute-force attempts per IP
 def verify_2fa():
     """Verify 2FA code during login."""
     # Check if there's a pending 2FA login
@@ -217,9 +239,7 @@ def verify_2fa():
 
     user = DataManager.get_user_by_id(user_id)
     if not user:
-        session.pop('pending_2fa_user_id', None)
-        session.pop('pending_2fa_remember', None)
-        session.pop('pending_2fa_next', None)
+        _clear_pending_2fa()
         flash('User not found. Please log in again.', 'danger')
         return redirect(url_for('dashboard.login'))
 
@@ -230,6 +250,7 @@ def verify_2fa():
             remember = session.pop('pending_2fa_remember', False)
             next_page = session.pop('pending_2fa_next', None)
             session.pop('pending_2fa_user_id', None)
+            session.pop('pending_2fa_attempts', None)
 
             login_user(user, remember=remember)
             LogManager.log_security_event(
@@ -242,11 +263,25 @@ def verify_2fa():
                 return redirect(next_page)
             return redirect(url_for('dashboard.index'))
         else:
+            # Track failed attempts for this pending login and abort after too many
+            attempts = session.get('pending_2fa_attempts', 0) + 1
+            session['pending_2fa_attempts'] = attempts
             LogManager.log_security_event(
                 LogManager.SECURITY_LOGIN_FAILED,
                 username=user.username,
-                description='Invalid 2FA code'
+                description=f'Invalid 2FA code (attempt {attempts}/{MAX_2FA_ATTEMPTS})'
             )
+
+            if attempts >= MAX_2FA_ATTEMPTS:
+                _clear_pending_2fa()
+                LogManager.log_security_event(
+                    LogManager.SECURITY_ACCOUNT_LOCKED,
+                    username=user.username,
+                    description='Too many invalid 2FA codes; pending login invalidated'
+                )
+                flash('Too many invalid codes. Please log in again.', 'danger')
+                return redirect(url_for('dashboard.login'))
+
             flash('Invalid authentication code. Please try again.', 'danger')
 
     return render_template('dashboard/verify_2fa.html', form=form, username=user.username)
@@ -255,9 +290,7 @@ def verify_2fa():
 @dashboard_bp.route('/cancel-2fa')
 def cancel_2fa():
     """Cancel pending 2FA login."""
-    session.pop('pending_2fa_user_id', None)
-    session.pop('pending_2fa_remember', None)
-    session.pop('pending_2fa_next', None)
+    _clear_pending_2fa()
     flash('Login cancelled.', 'info')
     return redirect(url_for('dashboard.login'))
 
@@ -1134,7 +1167,7 @@ def reports_edit(report_id):
 @check_not_banned
 @has_permission(CAN_REFRESH_PLAYSTORE)
 def fetch_app_info(app_id):
-    """Fetch icon and description for a single app from Play Store."""
+    """Fetch icon and description for a single app from the chosen source."""
     app = DataManager.get_app_by_id(app_id)
     if not app:
         flash('App not found.', 'danger')
@@ -1148,12 +1181,19 @@ def fetch_app_info(app_id):
     # Check if this is a full refresh (force overwrite)
     force_refresh = request.form.get('force') == '1'
 
+    # Which source to fetch from (button-driven); default to Play Store
+    source = request.form.get('source', 'playstore')
+    if source not in APP_INFO_PROVIDERS:
+        source = 'playstore'
+    source_label = PROVIDER_LABELS.get(source, source)
+
     # Clear old icon path if it uses the deprecated location
     current_icon = app.get('android_icon_url', '')
     if current_icon.startswith('/static/icons/'):
         app['android_icon_url'] = ''
 
-    info = fetch_and_update_app_info(package_name)
+    # Only query the explicitly selected source, not an automatic fallback
+    info = fetch_and_update_app_info(package_name, sources=(source,))
 
     if info:
         updated = []
@@ -1186,7 +1226,7 @@ def fetch_app_info(app_id):
         else:
             flash('No new information to update.', 'info')
     else:
-        flash(f'Could not fetch info for {package_name}. App may not be on Play Store.', 'danger')
+        flash(f'Could not fetch info for {package_name} from {source_label}. App may not be listed there.', 'danger')
 
     return redirect(url_for('dashboard.apps_edit', app_id=app_id))
 
@@ -1224,7 +1264,8 @@ def fetch_all_info():
             skip_count += 1
             continue
 
-        info = fetch_and_update_app_info(package_name)
+        # Bulk refresh uses the Play Store only; F-Droid is a per-app button
+        info = fetch_and_update_app_info(package_name, sources=('playstore',))
 
         if info:
             updated = False
