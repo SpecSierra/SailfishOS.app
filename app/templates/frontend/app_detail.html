@@ -42,6 +42,15 @@
                         </p>
                         {% endif %}
                     </div>
+                    {% if has_permission(CAN_EDIT_APP) %}
+                    <div class="ml-auto">
+                        <a href="{{ url_for('dashboard.apps_edit', app_id=app.id) }}"
+                           class="btn btn-sm btn-outline-primary"
+                           title="Edit this app's details, category and countries">
+                            <i class="fas fa-edit" aria-hidden="true"></i> Edit
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
 
                 {% if app.android_description %}
