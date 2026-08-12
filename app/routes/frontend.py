@@ -4,6 +4,7 @@ from app import limiter
 from app.models import DataManager
 from app.forms import SearchForm, ReportForm, AppSubmitForm
 from app.utils import fetch_and_update_app_info, verify_hcaptcha, normalize_for_sort
+from app.search import search_apps
 from app.logs import LogManager
 from config import Config
 
@@ -27,20 +28,16 @@ def index():
     form = SearchForm(request.args, meta={'csrf': False})
     form.category.choices = [('', 'All Categories')] + [(c['slug'], c['name']) for c in categories]
 
-    q = request.args.get('q', '').strip().lower()
+    q = request.args.get('q', '').strip()
     category = request.args.get('category', '')
     status = request.args.get('status', '')
     country = request.args.get('country', '')
 
+    category_map = {c['slug']: c for c in categories}
+
     filtered_apps = apps
 
-    if q:
-        filtered_apps = [
-            app for app in filtered_apps
-            if q in app.get('android_name', '').lower() or
-               q in app.get('android_description', '').lower()
-        ]
-
+    # Structured filters first (cheap), then relevance search on the remainder
     if category:
         filtered_apps = [
             app for app in filtered_apps
@@ -60,7 +57,15 @@ def index():
                 if app.get('native_exists', False)
             ]
 
-    # Sort apps: has native app, has rating, rating quality, then alphabetically
+    # Full-text relevance search across name, package, native apps, category
+    # and description (diacritic-insensitive, multi-word AND semantics)
+    search_scores = {}
+    if q:
+        search_scores = search_apps(filtered_apps, q, category_map)
+        filtered_apps = [app for app in filtered_apps if app['id'] in search_scores]
+
+    # Sort apps. When searching, relevance dominates; otherwise fall back to
+    # the default ordering: has native app, has rating, rating quality, name.
     ratings_map = {}
     for app in filtered_apps:
         rating, count = DataManager.get_app_rating_from_reports(app['id'])
@@ -71,7 +76,11 @@ def index():
         has_native = 1 if app.get('native_exists') else 0
         has_rating = 1 if rating_info['rating'] > 0 else 0
         rating_value = rating_info['rating'] or 0
-        return (-has_native, -has_rating, -rating_value, -rating_info['count'], normalize_for_sort(app.get('android_name', '')))
+        base = (-has_native, -has_rating, -rating_value, -rating_info['count'], normalize_for_sort(app.get('android_name', '')))
+        if q:
+            # Higher relevance first, then the usual tie-breakers
+            return (-search_scores.get(app['id'], 0),) + base
+        return base
 
     filtered_apps.sort(key=sort_key)
 
@@ -82,8 +91,6 @@ def index():
     start = (page - 1) * per_page
     end = start + per_page
     paginated_apps = filtered_apps[start:end]
-
-    category_map = {c['slug']: c for c in categories}
 
     # Calculate ratings from community reports for each app
     app_ratings = {}
