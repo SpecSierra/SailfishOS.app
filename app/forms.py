@@ -316,6 +316,11 @@ class ReportSubmitForm(FlaskForm):
     native_works = SelectField('Native SailfishOS App', choices=PLATFORM_WORKS_CHOICES, validators=[Optional()])
     native_app = SelectField('Native App', choices=[('', '-- Select native app --')], validators=[Optional()])
     custom_native_app = StringField('Custom Native App', validators=[Optional(), Length(max=100)])
+    # Optional store/repo link when suggesting a new native app; adds it to the
+    # app's catalogue entry so others can find it.
+    custom_native_app_url = StringField('Native App Store Link', validators=[
+        Optional(), Length(max=500), validate_url
+    ])
 
     # Web browser
     browser_works = SelectField('Web Browser', choices=PLATFORM_WORKS_CHOICES, validators=[Optional()])

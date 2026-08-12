@@ -239,6 +239,24 @@ def app_detail(app_id):
                 description=f"{entry['platform'].capitalize()} report submitted for app {app_id}"
             )
 
+        # If the user reported a brand-new (custom) native app, add it to the
+        # app's catalogue entry so others can find it, with its store link.
+        if form.native_works.data and form.native_app.data == 'custom' and native_app_name:
+            added = DataManager.add_native_app_to_app(
+                app_id, native_app_name, form.custom_native_app_url.data or ''
+            )
+            if added:
+                LogManager.log_action(
+                    user_id=user_id,
+                    username=current_user.username if current_user.is_authenticated else reporter_name,
+                    action=LogManager.ACTION_APP_EDITED,
+                    entity_type='app',
+                    entity_id=app_id,
+                    old_data=None,
+                    new_data={'native_app_name': native_app_name, 'store_url': form.custom_native_app_url.data or ''},
+                    description=f'Community added native app "{native_app_name}"'
+                )
+
         count = len(report_entries)
         flash(
             f'Thank you! Your {count} report{"s" if count != 1 else ""} '

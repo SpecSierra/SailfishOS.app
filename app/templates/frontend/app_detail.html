@@ -379,8 +379,18 @@
                     <div class="row" id="custom-native-app-row" style="display: none;">
                         <div class="col-md-6" id="custom-native-app-group">
                             <div class="form-group">
-                                <label for="custom_native_app"><i class="fas fa-edit"></i> Custom Native App Name</label>
-                                {{ form.custom_native_app(class="form-control", placeholder="Enter native app name") }}
+                                <label for="custom_native_app"><i class="fas fa-edit"></i> Native App Name</label>
+                                {{ form.custom_native_app(class="form-control", placeholder="e.g., SailTrix") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="custom_native_app_url"><i class="fas fa-link"></i> Store / Repo Link (optional)</label>
+                                {{ form.custom_native_app_url(class="form-control", placeholder="https://openrepos.net/... or https://...") }}
+                                {% for error in form.custom_native_app_url.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                                {% endfor %}
+                                <small class="form-text text-muted">If this native app isn't listed yet, we'll add it for others.</small>
                             </div>
                         </div>
                     </div>

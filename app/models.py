@@ -345,6 +345,59 @@ class DataManager:
         cls.save_apps(apps)
 
     @classmethod
+    def add_native_app_to_app(cls, app_id, name, store_url=''):
+        """
+        Add a community-suggested native app (with an optional store link) to
+        an app entry.
+
+        De-duplicates by name (case-insensitive). If the app has no native app
+        yet, the suggestion becomes its primary native app; otherwise it is
+        appended to additional_native_apps. Returns True if added, False if the
+        app was not found or the name already exists.
+        """
+        name = (name or '').strip()
+        if not name:
+            return False
+        name = name[:MAX_APP_NAME_LENGTH]
+        store_url = (store_url or '').strip()[:MAX_URL_LENGTH]
+
+        apps = cls.get_apps()
+        for i, app in enumerate(apps):
+            if app['id'] != app_id:
+                continue
+
+            # Collect existing native app names for de-duplication
+            existing = []
+            if app.get('native_name'):
+                existing.append(app['native_name'].strip().lower())
+            for na in app.get('additional_native_apps', []) or []:
+                if isinstance(na, dict) and na.get('name'):
+                    existing.append(na['name'].strip().lower())
+            if name.lower() in existing:
+                return False
+
+            if not app.get('native_exists') and not app.get('native_name'):
+                # First native app -> becomes the primary one
+                app['native_exists'] = True
+                app['native_name'] = name
+                app['native_store_url'] = store_url
+                app['native_rating'] = 'none'
+            else:
+                app.setdefault('additional_native_apps', [])
+                app['additional_native_apps'].append({
+                    'name': name,
+                    'store_url': store_url,
+                    'rating': 'none',
+                })
+                app['native_exists'] = True
+
+            app['updated_at'] = datetime.utcnow().isoformat()
+            apps[i] = app
+            cls.save_apps(apps)
+            return True
+        return False
+
+    @classmethod
     def get_categories(cls):
         data = cls._load_json(current_app.config['CATEGORIES_JSON'])
         return data.get('categories', [])
